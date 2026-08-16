@@ -64,6 +64,9 @@ def item_prompt(*, title: str, content: str, source_name: str | None, url: str) 
 
 
 def parse_payload(raw_content: str) -> AIEnrichmentPayload:
+    if not isinstance(raw_content, str) or not raw_content.strip():
+        raise OpenRouterResponseError("OpenRouter response content was empty")
+
     try:
         parsed = json.loads(raw_content)
     except json.JSONDecodeError as exc:
@@ -118,6 +121,7 @@ async def enrich_with_openrouter(
                 "schema": ENRICHMENT_SCHEMA,
             },
         },
+        "provider": {"require_parameters": True},
         "plugins": [{"id": "response-healing"}],
     }
 

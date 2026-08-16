@@ -108,8 +108,12 @@ async def upsert_enrichment(
     payload: AIEnrichmentPayload,
     raw_response: dict,
 ) -> Enrichment:
-    existing = item.enrichment or await get_enrichment(session, item.id)
-    enrichment = existing or Enrichment(item_id=item.id)
+    existing = (
+        item.enrichment
+        if item.enrichment is not None
+        else await get_enrichment(session, item.id)
+    )
+    enrichment = existing if existing is not None else Enrichment(item_id=item.id)
 
     enrichment.provider = "openrouter"
     enrichment.model = get_settings().openrouter_model
@@ -133,12 +137,25 @@ async def upsert_enrichment(
 
 
 async def mark_enrichment_error(session: AsyncSession, item: Item, error: str) -> Enrichment:
-    existing = item.enrichment or await get_enrichment(session, item.id)
-    enrichment = existing or empty_failed_enrichment(item, error)
+    existing = (
+        item.enrichment
+        if item.enrichment is not None
+        else await get_enrichment(session, item.id)
+    )
+    enrichment = existing if existing is not None else empty_failed_enrichment(item, error)
 
     enrichment.provider = "openrouter"
     enrichment.model = get_settings().openrouter_model
     enrichment.status = "error"
+    enrichment.summary = None
+    enrichment.severity = None
+    enrichment.confidence = None
+    enrichment.tags = []
+    enrichment.cves = []
+    enrichment.iocs = []
+    enrichment.mitre_attack = []
+    enrichment.recommended_actions = []
+    enrichment.raw_response = {}
     enrichment.error = error
     enrichment.enriched_at = datetime.now(UTC)
 
@@ -179,12 +196,14 @@ async def enrich_item(
         )
         enrichment = await upsert_enrichment(session, item, payload, raw_response)
         await session.flush()
+        await session.refresh(enrichment)
         return ItemEnrichmentResult(item_id=item.id, status="completed", enrichment=enrichment)
     except OpenRouterConfigurationError:
         raise
     except Exception as exc:
         enrichment = await mark_enrichment_error(session, item, str(exc))
         await session.flush()
+        await session.refresh(enrichment)
         return ItemEnrichmentResult(
             item_id=item.id,
             status="error",

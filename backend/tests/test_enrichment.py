@@ -102,3 +102,75 @@ def test_item_enrichment_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert read_enrichment_response.json()["summary"].startswith("Active exploitation")
 
     client.delete(f"/sources/{source_id}")
+
+
+@pytest.mark.integration
+def test_item_enrichment_retry_updates_existing_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = TestClient(app)
+    unique_id = uuid4().hex
+    attempts = 0
+
+    async def fake_fetch_feed(url: str) -> bytes:
+        assert url.startswith("https://example.com/feed/")
+        return rss_feed(unique_id)
+
+    async def flaky_enrich_with_openrouter(**kwargs):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise RuntimeError("temporary provider failure")
+
+        return (
+            AIEnrichmentPayload(
+                summary="Retried enrichment succeeded.",
+                severity="medium",
+                confidence=72,
+                tags=["retry"],
+                cves=[],
+                iocs=[],
+                mitre_attack=[],
+                recommended_actions=["Review the retried enrichment"],
+            ),
+            {"choices": [{"message": {"content": "{}"}}]},
+        )
+
+    monkeypatch.setattr("cybersec_api.collectors.rss.fetch_feed", fake_fetch_feed)
+    monkeypatch.setattr(
+        "cybersec_api.enrichment.service.enrich_with_openrouter",
+        flaky_enrich_with_openrouter,
+    )
+
+    source_response = client.post(
+        "/sources",
+        json={
+            "name": f"Enrichment Retry Test {unique_id}",
+            "url": f"https://example.com/feed/{unique_id}.xml",
+            "source_type": "rss",
+            "weight": "1.00",
+            "is_enabled": True,
+        },
+    )
+    assert source_response.status_code == 201
+    source_id = source_response.json()["id"]
+
+    collection_response = client.post(f"/collection/sources/{source_id}/run")
+    assert collection_response.status_code == 200
+
+    item = client.get("/items", params={"source_id": source_id}).json()[0]
+    normalization_response = client.post(f"/normalization/items/{item['id']}/run")
+    assert normalization_response.status_code == 200
+
+    failed_response = client.post(f"/enrichment/items/{item['id']}/run")
+    assert failed_response.status_code == 200
+    failed = failed_response.json()
+    assert failed["status"] == "error"
+    assert failed["enrichment"]["summary"] is None
+    assert failed["enrichment"]["tags"] == []
+
+    retried_response = client.post(f"/enrichment/items/{item['id']}/run")
+    assert retried_response.status_code == 200
+    retried = retried_response.json()
+    assert retried["status"] == "completed"
+    assert retried["enrichment"]["summary"] == "Retried enrichment succeeded."
+
+    client.delete(f"/sources/{source_id}")
