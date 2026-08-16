@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 8 - War Room.
+Phase 9 - Ask CyberSec / RAG / citations.
 
 ## Monorepo layout
 
@@ -21,6 +21,7 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.routes`: API router composition
 - `cybersec_api.api.system`: health and readiness routes
 - `cybersec_api.api.sources`: source management routes
+- `cybersec_api.api.ask`: Ask CyberSec cited question answering route
 - `cybersec_api.api.stories`: story clustering and story analytics routes
 - `cybersec_api.api.collection`: manual collection routes
 - `cybersec_api.api.enrichment`: manual AI enrichment routes
@@ -28,6 +29,7 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.normalization`: manual normalization routes
 - `cybersec_api.api.items`: collected item routes
 - `cybersec_api.collectors`: RSS collection and scheduler logic
+- `cybersec_api.ask`: local retrieval and OpenRouter-backed answer generation
 - `cybersec_api.enrichment`: OpenRouter client and enrichment orchestration
 - `cybersec_api.intelligence`: derived entity extraction and risk scoring
 - `cybersec_api.normalizers`: text extraction, language detection and duplicate marking
@@ -113,6 +115,7 @@ CSS. The current shell is organized as a contextual cyber intelligence product
 instead of one long scrolling page. Analysts move between dedicated workspaces:
 
 - War Room for operational triage
+- Ask for cited RAG questions over current intelligence
 - Stories for threat narratives and exact source articles
 - Entities for CVEs, IOCs, MITRE techniques, tags and threat actors
 - News Feed for collected source material and item-level evidence
@@ -215,6 +218,27 @@ The War Room snapshot includes:
 This phase remains read-only over derived intelligence and does not create
 alerts, reports, cases or RAG answers.
 
+## Ask CyberSec
+
+Phase 9 adds cited question answering over the existing intelligence graph. It
+does not add new tables and does not persist conversations yet.
+
+Ask CyberSec retrieves evidence from normalized, enriched, non-duplicate news
+items and joins the current source, cyber entity and story relationships. The
+retrieval score combines deterministic local text embeddings, query token
+overlap and entity matches.
+
+Answer generation has two modes:
+
+- `openrouter`: uses the configured OpenRouter chat model to synthesize an
+  evidence-bound answer.
+- `local` or `local_fallback`: returns an extractive answer from the retrieved
+  citations when AI is disabled or unavailable.
+
+Every response returns citations that link back to exact news items, related
+stories, entities and original source URLs. Ask CyberSec is intended for
+analyst triage and does not replace source review.
+
 ## Contextual Navigation
 
 The contextual navigation layer is read-only and built over existing derived
@@ -252,7 +276,7 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 8 treats War Room data as untrusted analytical metadata aggregated from
+Phase 9 treats War Room and Ask data as untrusted analytical metadata aggregated from
 feeds, AI responses, extracted entities and story summaries. The UI renders
 those values as text and never executes or injects external HTML. The `users`
 table exists so authentication and RBAC can be added later without reshaping the

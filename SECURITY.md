@@ -2,9 +2,9 @@
 
 ## Current posture
 
-Phase 8 creates a Cyber War Room snapshot on top of story clusters,
+Phase 9 creates Ask CyberSec, a cited RAG surface on top of story clusters,
 AI-enriched RSS collection and derived cyber intelligence entities. It does not
-implement authentication, RBAC or RAG yet.
+implement authentication, RBAC, reports or alerts yet.
 
 ## Security rules
 
@@ -91,3 +91,13 @@ story metadata into a higher-visibility operational surface. It is read-only and
 does not trigger alerts or response actions. Operators should treat the risk
 queue, operating mode and source health as triage aids until authentication,
 RBAC, audit logging, analyst approval and incident workflow controls exist.
+
+## Phase 9 Threat Notes
+
+Ask CyberSec retrieves and summarizes untrusted feed content, untrusted AI
+output and derived entities. Citations provide traceability, not proof. Operators
+must review the linked source items before taking defensive action. Ask does not
+persist conversations yet, does not enforce per-user authorization and does not
+protect against prompt injection beyond evidence-only prompting and plain-text
+rendering. Future phases should add authorized retrieval, prompt-injection
+testing, audit logs, usage limits and model-cost controls.

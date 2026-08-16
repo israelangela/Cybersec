@@ -88,8 +88,9 @@ docker compose run --rm backend alembic upgrade head
 ## Phase Discipline
 
 CyberSec is built phase by phase. Phase 8 is complete as a Cyber War Room
-experience over stories, entities, enriched items and source health. Phase 9
-must focus on RAG, Ask CyberSec and citations only when explicitly requested.
+experience over stories, entities, enriched items and source health. Phase 9 is
+complete as Ask CyberSec with cited RAG over enriched intelligence. Phase 10
+must focus on reports only when explicitly requested.
 
 ## AI Enrichment
 
@@ -151,3 +152,17 @@ The frontend redesign specification is stored in
 `FRONTEND_REDESIGN_PROMPT.md`. Treat it as the product brief for the current
 navigation model: stories, news, entities and sources must remain linked so an
 analyst can trace how each source item becomes contextual threat intelligence.
+
+## Ask CyberSec
+
+Ask CyberSec depends on enriched items, synchronized cyber entities and stories:
+
+```powershell
+Invoke-RestMethod -Method Post "http://localhost:8000/ask" `
+  -ContentType "application/json" `
+  -Body '{"question":"Que amenazas requieren prioridad?","limit":6,"use_ai":true}'
+```
+
+If `OPENROUTER_API_KEY` is available, Ask CyberSec uses the configured model for
+the final answer. If the model is unavailable, the endpoint still returns a
+local extractive answer with citations.

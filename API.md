@@ -46,10 +46,45 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 8 exposes system status, source management, RSS collection, item listing,
+Phase 9 exposes system status, source management, RSS collection, item listing,
 item statistics, item normalization, AI enrichment, cyber intelligence entity
 endpoints, story clustering endpoints, contextual navigation endpoints and the
-Cyber War Room snapshot.
+Cyber War Room snapshot. It also exposes Ask CyberSec for cited RAG answers over
+enriched intelligence.
+
+## Ask CyberSec
+
+### `POST /ask`
+
+Answers an analyst question using retrieved CyberSec evidence. Retrieval runs
+over normalized, enriched, non-duplicate news items, their cyber entities and
+linked stories.
+
+Request:
+
+```json
+{
+  "question": "Que sabemos de CVE-2026-19557?",
+  "limit": 6,
+  "use_ai": true
+}
+```
+
+Fields:
+
+- `question`: analyst question, from `3` to `1000` characters
+- `limit`: maximum citations to return, from `1` to `12`
+- `use_ai`: when true, OpenRouter is used if configured; otherwise CyberSec
+  returns a local extractive answer with citations
+
+Response sections:
+
+- `answer`: cited answer text
+- `mode`: `openrouter`, `local` or `local_fallback`
+- `confidence`: heuristic confidence from retrieved evidence
+- `citations`: exact source news items with source URL, story ids, entities and
+  excerpts
+- `follow_up_questions`: suggested next pivots
 
 ## Sources
 
