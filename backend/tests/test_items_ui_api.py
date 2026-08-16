@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from cybersec_api.main import app
 
+
 def rss_feed(unique_id: str) -> bytes:
     return f"""<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
@@ -14,7 +15,9 @@ def rss_feed(unique_id: str) -> bytes:
       <title>Exploit activity {unique_id} targets edge firewalls</title>
       <link>https://example.com/intel/{unique_id}/ui-firewalls</link>
       <guid>{unique_id}-ui-firewalls</guid>
-      <description>Attackers are exploiting vulnerable edge devices in case {unique_id}.</description>
+      <description>
+        Attackers are exploiting vulnerable edge devices in case {unique_id}.
+      </description>
       <pubDate>Mon, 10 Aug 2026 10:00:00 GMT</pubDate>
     </item>
     <item>

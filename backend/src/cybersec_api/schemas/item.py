@@ -23,6 +23,15 @@ class ItemRead(BaseModel):
     duplicate_of_item_id: UUID | None
     normalization_error: str | None
     normalized_at: datetime | None
+    ai_summary: str | None = None
+    ai_severity: str | None = None
+    ai_confidence: int | None = None
+    ai_tags: list[str] | None = None
+    ai_cves: list[str] | None = None
+    ai_iocs: list[str] | None = None
+    ai_mitre_attack: list[str] | None = None
+    ai_recommended_actions: list[str] | None = None
+    enriched_at: datetime | None = None
     published_at: datetime | None
     collected_at: datetime
     created_at: datetime
@@ -49,5 +58,7 @@ class ItemStatsRead(BaseModel):
     normalized: int
     duplicate: int
     normalization_error: int
+    enriched: int
+    enrichment_error: int
     languages: list[ItemLanguageCountRead]
     sources: list[ItemSourceCountRead]

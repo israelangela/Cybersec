@@ -2,14 +2,16 @@
 
 ## Current posture
 
-Phase 4 creates an intelligence UI on top of normalized RSS collection. It does not
-implement authentication, RBAC, AI enrichment or RAG yet.
+Phase 5 creates AI enrichment on top of normalized RSS collection. It does not
+implement authentication, RBAC or RAG yet.
 
 ## Security rules
 
 - Never commit real secrets.
 - Do not log passwords, tokens, API keys or authorization headers.
 - Treat all feed content as untrusted input.
+- Treat AI provider responses as untrusted input.
+- Never commit `OPENROUTER_API_KEY` or any other provider secret.
 - Use Alembic for all schema changes.
 - Keep database access behind SQLAlchemy sessions.
 - Prefer typed configuration through environment variables.
@@ -52,3 +54,12 @@ The intelligence workbench displays normalized content and source metadata as
 text. It never injects external feed HTML into the DOM. External original URLs
 open in a new tab with `noreferrer`. Authentication, RBAC and per-user access
 control remain future work.
+
+## Phase 5 Threat Notes
+
+AI enrichment sends normalized item title/content, source name and URL to the
+configured OpenRouter-compatible provider only when manually triggered. The API
+key is read from environment variables and is never stored in the repository.
+Model output is validated as structured JSON where supported, persisted as
+untrusted data and rendered as text. Prompt-injection defenses, tenant isolation,
+usage budgets and full audit logging remain future work.

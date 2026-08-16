@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 4 - Intelligence UI.
+Phase 5 - AI Enrichment.
 
 ## Monorepo layout
 
@@ -22,9 +22,11 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.system`: health and readiness routes
 - `cybersec_api.api.sources`: source management routes
 - `cybersec_api.api.collection`: manual collection routes
+- `cybersec_api.api.enrichment`: manual AI enrichment routes
 - `cybersec_api.api.normalization`: manual normalization routes
 - `cybersec_api.api.items`: collected item routes
 - `cybersec_api.collectors`: RSS collection and scheduler logic
+- `cybersec_api.enrichment`: OpenRouter client and enrichment orchestration
 - `cybersec_api.normalizers`: text extraction, language detection and duplicate marking
 - `cybersec_api.core.config`: pydantic-settings configuration
 - `cybersec_api.core.logging`: structlog configuration
@@ -111,6 +113,28 @@ Phase 4 adds an analyst-facing workbench over normalized items. The UI supports:
 The API remains server-filtered so the browser does not need to download the
 full item corpus.
 
+## AI Enrichment
+
+Phase 5 adds one AI enrichment row per item. Enrichment is intentionally
+separate from normalized items so model output can be audited and refreshed
+without changing the original collected intelligence.
+
+The OpenRouter client calls the OpenAI-compatible chat completions endpoint and
+requests structured JSON. The default model is `openrouter/free`, configurable
+through `OPENROUTER_MODEL`. The API key must be provided through
+`OPENROUTER_API_KEY` and must never be committed.
+
+Enrichment output includes:
+
+- Summary
+- Severity
+- Confidence
+- Tags
+- CVEs
+- IOCs
+- MITRE ATT&CK techniques
+- Recommended defensive actions
+
 ## Runtime
 
 Docker Compose runs:
@@ -134,11 +158,11 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 4 fetches RSS sources only and normalizes content into plain text before
-showing the normalized body in the UI. Source URLs and response bodies are
-untrusted input. The collector applies URL scheme validation, request timeouts,
-redirect limits and response-size limits. The `users` table exists so
-authentication and RBAC can be added later without reshaping the foundation.
+Phase 5 sends normalized item text to the configured AI provider only when a
+manual enrichment endpoint is called. Source URLs, feed bodies and AI responses
+are untrusted input. The UI renders enrichment fields as text and never executes
+or injects external HTML. The `users` table exists so authentication and RBAC
+can be added later without reshaping the foundation.
 
 ## Future direction
 
