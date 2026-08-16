@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from cybersec_api.db.base import Base
 
 if TYPE_CHECKING:
+    from cybersec_api.models.enrichment import Enrichment
     from cybersec_api.models.source import Source
 
 
@@ -53,8 +54,56 @@ class Item(Base):
     )
 
     source: Mapped[Source] = relationship(back_populates="items")
+    enrichment: Mapped[Enrichment | None] = relationship(
+        back_populates="item", cascade="all, delete-orphan", uselist=False
+    )
 
     @property
     def source_name(self) -> str | None:
         source = self.__dict__.get("source")
         return source.name if source is not None else None
+
+    @property
+    def ai_summary(self) -> str | None:
+        enrichment = self.__dict__.get("enrichment")
+        return enrichment.summary if enrichment is not None else None
+
+    @property
+    def ai_severity(self) -> str | None:
+        enrichment = self.__dict__.get("enrichment")
+        return enrichment.severity if enrichment is not None else None
+
+    @property
+    def ai_confidence(self) -> int | None:
+        enrichment = self.__dict__.get("enrichment")
+        return enrichment.confidence if enrichment is not None else None
+
+    @property
+    def ai_tags(self) -> list[str] | None:
+        enrichment = self.__dict__.get("enrichment")
+        return enrichment.tags if enrichment is not None else None
+
+    @property
+    def ai_cves(self) -> list[str] | None:
+        enrichment = self.__dict__.get("enrichment")
+        return enrichment.cves if enrichment is not None else None
+
+    @property
+    def ai_iocs(self) -> list[str] | None:
+        enrichment = self.__dict__.get("enrichment")
+        return enrichment.iocs if enrichment is not None else None
+
+    @property
+    def ai_mitre_attack(self) -> list[str] | None:
+        enrichment = self.__dict__.get("enrichment")
+        return enrichment.mitre_attack if enrichment is not None else None
+
+    @property
+    def ai_recommended_actions(self) -> list[str] | None:
+        enrichment = self.__dict__.get("enrichment")
+        return enrichment.recommended_actions if enrichment is not None else None
+
+    @property
+    def enriched_at(self) -> datetime | None:
+        enrichment = self.__dict__.get("enrichment")
+        return enrichment.enriched_at if enrichment is not None else None

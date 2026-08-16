@@ -93,7 +93,6 @@ Columns:
 
 Future phases may add:
 
-- `enrichments`
 - `stories`
 - `reports`
 - `departments`
@@ -142,3 +141,39 @@ The intelligence UI uses the existing `items` and `sources` tables. Backend
 queries filter by existing columns such as `source_id`, `status`, `language`,
 `is_duplicate`, `title`, `url`, `summary`, `raw_content`, `normalized_title` and
 `normalized_content`.
+
+## Phase 5 Notes
+
+Phase 5 adds migration `0003_enrichments`.
+
+### `enrichments`
+
+Stores one AI enrichment result per item.
+
+Columns:
+
+- `id`
+- `item_id`
+- `provider`
+- `model`
+- `status`
+- `summary`
+- `severity`
+- `confidence`
+- `tags`
+- `cves`
+- `iocs`
+- `mitre_attack`
+- `recommended_actions`
+- `raw_response`
+- `error`
+- `enriched_at`
+- `created_at`
+- `updated_at`
+
+Constraints:
+
+- `enrichments.item_id` is unique.
+- `enrichments.item_id` references `items.id` with cascade delete.
+- `enrichments.status` is indexed.
+- `enrichments.severity` is indexed.

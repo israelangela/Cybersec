@@ -8,6 +8,7 @@ import {
   Eye,
   Fingerprint,
   Languages,
+  Sparkles,
   RefreshCw,
   Search,
   ShieldAlert
@@ -31,6 +32,15 @@ type Item = {
   duplicate_of_item_id: string | null;
   normalization_error: string | null;
   normalized_at: string | null;
+  ai_summary: string | null;
+  ai_severity: string | null;
+  ai_confidence: number | null;
+  ai_tags: string[] | null;
+  ai_cves: string[] | null;
+  ai_iocs: string[] | null;
+  ai_mitre_attack: string[] | null;
+  ai_recommended_actions: string[] | null;
+  enriched_at: string | null;
   published_at: string | null;
   collected_at: string;
 };
@@ -48,6 +58,8 @@ type ItemStats = {
   normalized: number;
   duplicate: number;
   normalization_error: number;
+  enriched: number;
+  enrichment_error: number;
   languages: Array<{ language: string; count: number }>;
   sources: Array<{
     source_id: string;
@@ -72,6 +84,20 @@ type NormalizationRunResult = {
   normalized: number;
   duplicates: number;
   failed: number;
+};
+
+type ItemEnrichmentResult = {
+  item_id: string;
+  status: string;
+  error: string | null;
+};
+
+type EnrichmentRunResult = {
+  status: string;
+  candidates: number;
+  enriched: number;
+  failed: number;
+  skipped: number;
 };
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -116,8 +142,11 @@ export function IntelligenceWorkbench() {
   const [loading, setLoading] = useState(true);
   const [collecting, setCollecting] = useState(false);
   const [normalizing, setNormalizing] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [batchEnriching, setBatchEnriching] = useState(false);
   const [lastRun, setLastRun] = useState<CollectionRunResult | null>(null);
   const [lastNormalization, setLastNormalization] = useState<NormalizationRunResult | null>(null);
+  const [lastEnrichment, setLastEnrichment] = useState<EnrichmentRunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const selectedItem = useMemo(
@@ -236,15 +265,62 @@ export function IntelligenceWorkbench() {
     }
   }
 
+  async function enrichSelectedItem() {
+    if (!selectedItem) {
+      return;
+    }
+
+    setEnriching(true);
+    setError(null);
+
+    try {
+      const result = await apiRequest<ItemEnrichmentResult>(
+        `/enrichment/items/${selectedItem.id}/run`,
+        { method: "POST" }
+      );
+
+      if (result.status === "error" || result.status === "skipped") {
+        setError(result.error ?? "Unable to enrich item");
+      }
+
+      await refreshAll();
+    } catch (enrichmentError) {
+      setError(enrichmentError instanceof Error ? enrichmentError.message : "Unable to enrich item");
+    } finally {
+      setEnriching(false);
+    }
+  }
+
+  async function enrichBatch() {
+    setBatchEnriching(true);
+    setError(null);
+
+    try {
+      const result = await apiRequest<EnrichmentRunResult>("/enrichment/run?limit=10", {
+        method: "POST"
+      });
+      setLastEnrichment(result);
+      await refreshAll();
+    } catch (enrichmentError) {
+      setError(
+        enrichmentError instanceof Error ? enrichmentError.message : "Unable to enrich items"
+      );
+    } finally {
+      setBatchEnriching(false);
+    }
+  }
+
   return (
     <section className="grid gap-6">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
         {[
           { label: "Items", value: stats?.total ?? 0 },
           { label: "Normalized", value: stats?.normalized ?? 0 },
           { label: "Raw", value: stats?.raw ?? 0 },
           { label: "Duplicates", value: stats?.duplicate ?? 0 },
-          { label: "Errors", value: stats?.normalization_error ?? 0 }
+          { label: "Errors", value: stats?.normalization_error ?? 0 },
+          { label: "AI Enriched", value: stats?.enriched ?? 0 },
+          { label: "AI Errors", value: stats?.enrichment_error ?? 0 }
         ].map((metric) => (
           <div key={metric.label} className="border border-white/10 bg-white/[0.04] p-4">
             <p className="text-sm text-slate-400">{metric.label}</p>
@@ -290,6 +366,15 @@ export function IntelligenceWorkbench() {
                 >
                   <Fingerprint className="h-4 w-4" aria-hidden="true" />
                   {normalizing ? "Normalizing" : "Normalize"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void enrichBatch()}
+                  disabled={batchEnriching}
+                  className="inline-flex h-10 items-center gap-2 border border-ice/30 bg-ice/10 px-3 text-sm font-semibold text-ice transition hover:border-ice hover:bg-ice/15 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  {batchEnriching ? "Enriching" : "Enrich 10"}
                 </button>
               </div>
             </div>
@@ -403,6 +488,16 @@ export function IntelligenceWorkbench() {
             </div>
           ) : null}
 
+          {lastEnrichment ? (
+            <div className="grid gap-3 border-b border-white/10 p-4 text-sm text-slate-300 sm:grid-cols-5">
+              <span>Status {lastEnrichment.status}</span>
+              <span>Candidates {lastEnrichment.candidates}</span>
+              <span>Enriched {lastEnrichment.enriched}</span>
+              <span>Failed {lastEnrichment.failed}</span>
+              <span>Skipped {lastEnrichment.skipped}</span>
+            </div>
+          ) : null}
+
           {error ? <div className="border-b border-white/10 p-4 text-sm text-red-300">{error}</div> : null}
 
           <div className="divide-y divide-white/10">
@@ -435,10 +530,15 @@ export function IntelligenceWorkbench() {
                         {item.language}
                       </span>
                     ) : null}
+                    {item.ai_severity ? (
+                      <span className="border border-signal/30 px-2 py-1 text-xs uppercase text-signal">
+                        {item.ai_severity}
+                      </span>
+                    ) : null}
                   </div>
 
                   <p className="line-clamp-2 text-sm leading-6 text-slate-400">
-                    {item.normalized_content ?? item.summary ?? "No content"}
+                    {item.ai_summary ?? item.normalized_content ?? item.summary ?? "No content"}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
@@ -448,6 +548,7 @@ export function IntelligenceWorkbench() {
                       {formatDate(item.published_at ?? item.collected_at)}
                     </span>
                     <span>{compactHash(item.normalized_hash ?? item.content_hash)}</span>
+                    {item.ai_confidence !== null ? <span>AI {item.ai_confidence}%</span> : null}
                     {item.is_duplicate ? <span>Duplicate</span> : null}
                   </div>
                 </button>
@@ -476,6 +577,16 @@ export function IntelligenceWorkbench() {
                   <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 </a>
               </div>
+
+              <button
+                type="button"
+                onClick={() => void enrichSelectedItem()}
+                disabled={enriching || selectedItem.status !== "normalized" || selectedItem.is_duplicate}
+                className="inline-flex h-10 items-center justify-center gap-2 border border-ice/30 bg-ice/10 px-3 text-sm font-semibold text-ice transition hover:border-ice hover:bg-ice/15 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+                {enriching ? "Enriching" : selectedItem.ai_summary ? "Refresh AI Enrichment" : "Enrich Item"}
+              </button>
 
               <div className="grid gap-3 text-sm text-slate-300">
                 <div className="grid grid-cols-2 gap-3">
@@ -510,7 +621,64 @@ export function IntelligenceWorkbench() {
                     {formatDate(selectedItem.normalized_at)}
                   </strong>
                 </span>
+                <span className="border border-white/10 p-3">
+                  AI Enriched
+                  <strong className="mt-1 block font-semibold text-white">
+                    {formatDate(selectedItem.enriched_at)}
+                  </strong>
+                </span>
               </div>
+
+              {selectedItem.ai_summary ? (
+                <div className="grid gap-3 border border-ice/20 bg-ice/5 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-ice" aria-hidden="true" />
+                    <span className="text-sm font-semibold text-white">AI Enrichment</span>
+                    {selectedItem.ai_severity ? (
+                      <span className="border border-signal/30 px-2 py-1 text-xs uppercase text-signal">
+                        {selectedItem.ai_severity}
+                      </span>
+                    ) : null}
+                    {selectedItem.ai_confidence !== null ? (
+                      <span className="text-xs text-slate-400">
+                        Confidence {selectedItem.ai_confidence}%
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-sm leading-6 text-slate-300">{selectedItem.ai_summary}</p>
+                  {selectedItem.ai_tags?.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedItem.ai_tags.map((tag) => (
+                        <span key={tag} className="border border-white/10 px-2 py-1 text-xs text-slate-300">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {selectedItem.ai_cves?.length ? (
+                    <p className="text-xs text-slate-400">
+                      CVEs {selectedItem.ai_cves.join(", ")}
+                    </p>
+                  ) : null}
+                  {selectedItem.ai_iocs?.length ? (
+                    <p className="text-xs text-slate-400">
+                      IOCs {selectedItem.ai_iocs.join(", ")}
+                    </p>
+                  ) : null}
+                  {selectedItem.ai_mitre_attack?.length ? (
+                    <p className="text-xs text-slate-400">
+                      MITRE {selectedItem.ai_mitre_attack.join(", ")}
+                    </p>
+                  ) : null}
+                  {selectedItem.ai_recommended_actions?.length ? (
+                    <ul className="grid gap-2 text-sm text-slate-300">
+                      {selectedItem.ai_recommended_actions.map((action) => (
+                        <li key={action}>- {action}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
 
               {selectedItem.normalization_error ? (
                 <div className="flex gap-3 border border-red-400/30 bg-red-950/20 p-3 text-sm text-red-200">

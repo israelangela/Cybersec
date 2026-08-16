@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 4 - Intelligence UI is implemented.
+Phase 5 - AI Enrichment is implemented.
 
 Included so far:
 
@@ -35,12 +35,14 @@ Included so far:
 - Intelligence summary metrics
 - Item detail panel with normalized content and source metadata
 - Item statistics API
+- AI enrichment API using OpenRouter-compatible chat completions
+- AI summary, severity, confidence, tags, CVEs, IOCs, MITRE techniques and actions
+- Enrichment workbench actions for selected items and small batches
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
 Not included yet:
 
-- AI enrichment
 - RAG
 - Reports
 - Alerts
@@ -73,6 +75,8 @@ Open:
 - Collection run: `POST http://localhost:8000/collection/run`
 - Normalization run: `POST http://localhost:8000/normalization/run`
 - Item stats: `GET http://localhost:8000/items/stats`
+- Enrichment run: `POST http://localhost:8000/enrichment/run`
+- Item enrichment: `POST http://localhost:8000/enrichment/items/{item_id}/run`
 
 ## Services
 
@@ -94,6 +98,10 @@ Default development connection:
 
 The repository must not contain real secrets. Use `.env` locally and keep it
 untracked.
+
+AI enrichment requires `OPENROUTER_API_KEY` in the local environment. The safe
+template in `.env.example` documents the variable names without storing a real
+key.
 
 ## Validation
 
@@ -119,6 +127,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 5 - AI Enrichment.
+Next recommended step: Phase 6 - Cyber Intelligence.
 
-Do not begin Phase 5 until explicitly requested.
+Do not begin Phase 6 until explicitly requested.

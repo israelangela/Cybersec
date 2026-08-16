@@ -16,7 +16,7 @@ def filtered_items_statement(
     is_duplicate: bool | None = None,
     search: str | None = None,
 ):
-    statement = select(Item).options(selectinload(Item.source))
+    statement = select(Item).options(selectinload(Item.source), selectinload(Item.enrichment))
 
     if source_id is not None:
         statement = statement.where(Item.source_id == source_id)
@@ -69,7 +69,11 @@ async def list_items(
 
 
 async def get_item(session: AsyncSession, item_id: UUID) -> Item | None:
-    statement = select(Item).options(selectinload(Item.source)).where(Item.id == item_id)
+    statement = (
+        select(Item)
+        .options(selectinload(Item.source), selectinload(Item.enrichment))
+        .where(Item.id == item_id)
+    )
     return await session.scalar(statement)
 
 

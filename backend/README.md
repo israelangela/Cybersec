@@ -1,6 +1,6 @@
 # CyberSec API
 
-Phase 4 backend for CyberSec.
+Phase 5 backend for CyberSec.
 
 Current backend capabilities:
 
@@ -10,3 +10,4 @@ Current backend capabilities:
 - Item listing
 - Item filtering and statistics
 - Item normalization and duplicate marking
+- AI enrichment through OpenRouter-compatible chat completions

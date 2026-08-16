@@ -46,8 +46,8 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 4 exposes system status, source management, RSS collection, item listing,
-item statistics and item normalization endpoints.
+Phase 5 exposes system status, source management, RSS collection, item listing,
+item statistics, item normalization and AI enrichment endpoints.
 
 ## Sources
 
@@ -125,6 +125,17 @@ Optional query parameters:
 - `offset`: result offset for pagination
 
 Each item includes `source_name` when returned from list/detail endpoints.
+Items may also include AI fields when enrichment exists:
+
+- `ai_summary`
+- `ai_severity`
+- `ai_confidence`
+- `ai_tags`
+- `ai_cves`
+- `ai_iocs`
+- `ai_mitre_attack`
+- `ai_recommended_actions`
+- `enriched_at`
 
 ### `GET /items/stats`
 
@@ -139,6 +150,8 @@ Response:
   "normalized": 4491,
   "duplicate": 2,
   "normalization_error": 0,
+  "enriched": 10,
+  "enrichment_error": 0,
   "languages": [],
   "sources": []
 }
@@ -149,6 +162,29 @@ Response:
 Returns one collected item by UUID.
 
 Missing items return `404 Not Found`.
+
+## Enrichment
+
+### `GET /enrichment/items/{item_id}`
+
+Returns the enrichment row for one item.
+
+Missing enrichments return `404 Not Found`.
+
+### `POST /enrichment/items/{item_id}/run`
+
+Runs AI enrichment for one normalized, non-duplicate item.
+
+Missing items return `404 Not Found`.
+
+### `POST /enrichment/run`
+
+Runs AI enrichment for pending normalized, non-duplicate items without an
+existing enrichment.
+
+Optional query parameters:
+
+- `limit`: number of items to enrich, from `1` to `50`
 
 ## Collection
 

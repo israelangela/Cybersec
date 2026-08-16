@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cybersec_api.crud.enrichments import count_enrichments
 from cybersec_api.crud.items import (
     count_items,
     count_items_by_language,
@@ -60,6 +61,8 @@ async def read_item_stats(session: DatabaseSession) -> ItemStatsRead:
         normalized=await count_items(session, status="normalized"),
         duplicate=await count_items(session, is_duplicate=True),
         normalization_error=await count_items(session, status="normalization_error"),
+        enriched=await count_enrichments(session, status="completed"),
+        enrichment_error=await count_enrichments(session, status="error"),
         languages=[
             ItemLanguageCountRead(language=language, count=count)
             for language, count in language_counts
