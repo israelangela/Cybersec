@@ -96,4 +96,5 @@ def test_story_sync_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert stats_response.status_code == 200
     assert stats_response.json()["total_stories"] >= 1
 
-    client.delete(f"/sources/{source_id}")
+    assert client.delete(f"/sources/{source_id}").status_code == 204
+    assert client.post("/stories/sync", params={"limit": 500}).status_code == 200

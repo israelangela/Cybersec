@@ -46,9 +46,9 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 7 exposes system status, source management, RSS collection, item listing,
+Phase 8 exposes system status, source management, RSS collection, item listing,
 item statistics, item normalization, AI enrichment, cyber intelligence entity
-endpoints and story clustering endpoints.
+endpoints, story clustering endpoints and the Cyber War Room snapshot.
 
 ## Sources
 
@@ -283,6 +283,24 @@ Missing stories return `404 Not Found`.
 
 Returns total stories, high-risk stories, linked item count and top stories for
 the workbench.
+
+## War Room
+
+### `GET /war-room`
+
+Returns one operational snapshot for the Cyber War Room.
+
+Optional query parameters:
+
+- `limit`: number of queue, pulse, timeline and source rows, from `1` to `25`
+
+Response sections:
+
+- `summary`: operating mode and aggregate counts
+- `risk_queue`: active stories ordered by risk
+- `entity_pulse`: top entity groups ordered by risk and occurrence count
+- `timeline`: recent story and item events
+- `source_health`: source freshness and error status
 
 ## Collection
 

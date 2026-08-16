@@ -2,9 +2,9 @@
 
 ## Current posture
 
-Phase 7 creates deterministic story clusters on top of AI-enriched RSS
-collection and derived cyber intelligence entities. It does not implement
-authentication, RBAC or RAG yet.
+Phase 8 creates a Cyber War Room snapshot on top of story clusters,
+AI-enriched RSS collection and derived cyber intelligence entities. It does not
+implement authentication, RBAC or RAG yet.
 
 ## Security rules
 
@@ -83,3 +83,11 @@ Stories should be treated as analyst-assistive grouping metadata, not verified
 incident conclusions. Future phases should add reviewer workflows, provenance
 drill-down, cluster suppression and audit logs before using stories to trigger
 automated response.
+
+## Phase 8 Threat Notes
+
+The War Room aggregates untrusted feed content, untrusted AI output and derived
+story metadata into a higher-visibility operational surface. It is read-only and
+does not trigger alerts or response actions. Operators should treat the risk
+queue, operating mode and source health as triage aids until authentication,
+RBAC, audit logging, analyst approval and incident workflow controls exist.

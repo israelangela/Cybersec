@@ -17,4 +17,4 @@
 
 ## Current boundary
 
-Phase 7 is implemented. Phase 8 must not begin until explicitly requested.
+Phase 8 is implemented. Phase 9 must not begin until explicitly requested.

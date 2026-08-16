@@ -85,10 +85,9 @@ docker compose run --rm backend alembic upgrade head
 
 ## Phase Discipline
 
-CyberSec is built phase by phase. Phase 7 is complete as a story clustering
-layer over enriched items and derived cyber entities. Phase 8 must focus on the
-Cyber War Room experience and must not introduce RAG, reports or alerts unless
-explicitly requested later.
+CyberSec is built phase by phase. Phase 8 is complete as a Cyber War Room
+experience over stories, entities, enriched items and source health. Phase 9
+must focus on RAG, Ask CyberSec and citations only when explicitly requested.
 
 ## AI Enrichment
 
@@ -131,3 +130,15 @@ a collation mismatch warning after switching images, run:
 docker compose exec postgres psql -U cybersec -d cybersec -c "REINDEX DATABASE cybersec;"
 docker compose exec postgres psql -U cybersec -d cybersec -c "ALTER DATABASE cybersec REFRESH COLLATION VERSION;"
 ```
+
+## War Room
+
+The War Room is a read-only operational snapshot. Run collection,
+normalization, enrichment, intelligence sync and story sync first to populate the
+underlying analytical layers:
+
+```powershell
+Invoke-RestMethod "http://localhost:8000/war-room?limit=10"
+```
+
+The endpoint does not create reports, alerts, cases or RAG answers.

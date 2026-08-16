@@ -2,6 +2,7 @@ import { Activity, Database, Eye, ShieldCheck } from "lucide-react";
 
 import { IntelligenceWorkbench } from "@/components/intelligence-workbench";
 import { SourceManagement } from "@/components/source-management";
+import { WarRoom } from "@/components/war-room";
 import { getSystemStatus } from "@/lib/system-status";
 
 export default async function Home() {
@@ -28,7 +29,7 @@ export default async function Home() {
         <div className="grid items-end gap-8 lg:grid-cols-[1fr_auto]">
           <div className="max-w-4xl">
             <p className="mb-5 text-sm font-semibold uppercase tracking-[0.32em] text-signal">
-              Phase 4 Intelligence UI
+              Phase 8 Cyber War Room
             </p>
             <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
               CyberSec
@@ -60,13 +61,14 @@ export default async function Home() {
           </div>
         </div>
 
+        <WarRoom />
         <IntelligenceWorkbench />
         <SourceManagement />
 
         <footer className="grid gap-3 border-t border-white/10 pt-5 text-sm text-slate-400 sm:grid-cols-3">
           <span>Health endpoint active</span>
           <span>Readiness backed by database</span>
-          <span>Intelligence workbench enabled</span>
+          <span>War Room enabled</span>
         </footer>
       </section>
     </main>

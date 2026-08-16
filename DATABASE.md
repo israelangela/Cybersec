@@ -271,3 +271,12 @@ Constraints:
 - `item_id` references `items.id` with cascade delete.
 - `story_id` and `item_id` are the composite primary key.
 - `item_id` is indexed.
+
+## Phase 8 Notes
+
+Phase 8 does not require a database migration.
+
+The Cyber War Room is a read-only aggregate over existing `stories`,
+`story_items`, `cyber_entities`, `enrichments`, `items` and `sources` rows.
+Source health, operating mode, risk queue, entity pulse and timeline values are
+computed at request time.
