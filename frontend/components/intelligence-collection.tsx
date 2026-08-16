@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Clock, DownloadCloud, FileText, RefreshCw } from "lucide-react";
+import { Clock, DownloadCloud, FileText, Fingerprint, RefreshCw } from "lucide-react";
 
 type Item = {
   id: string;
@@ -13,6 +13,14 @@ type Item = {
   summary: string | null;
   raw_content: string | null;
   status: string;
+  normalized_title: string | null;
+  normalized_content: string | null;
+  normalized_hash: string | null;
+  language: string | null;
+  is_duplicate: boolean;
+  duplicate_of_item_id: string | null;
+  normalization_error: string | null;
+  normalized_at: string | null;
   published_at: string | null;
   collected_at: string;
   created_at: string;
@@ -27,6 +35,15 @@ type CollectionRunResult = {
   duplicates: number;
   skipped: number;
   errors: number;
+};
+
+type NormalizationRunResult = {
+  status: string;
+  candidates: number;
+  normalized: number;
+  duplicates: number;
+  failed: number;
+  skipped: number;
 };
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -52,10 +69,16 @@ export function IntelligenceCollection() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [collecting, setCollecting] = useState(false);
+  const [normalizing, setNormalizing] = useState(false);
   const [lastRun, setLastRun] = useState<CollectionRunResult | null>(null);
+  const [lastNormalization, setLastNormalization] = useState<NormalizationRunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const rawItems = useMemo(() => items.filter((item) => item.status === "raw").length, [items]);
+  const normalizedItems = useMemo(
+    () => items.filter((item) => item.status === "normalized").length,
+    [items]
+  );
 
   async function loadItems() {
     setLoading(true);
@@ -116,13 +139,34 @@ export function IntelligenceCollection() {
     }
   }
 
+  async function runNormalization() {
+    setNormalizing(true);
+    setError(null);
+
+    try {
+      const result = await apiRequest<NormalizationRunResult>("/normalization/run", {
+        method: "POST"
+      });
+      setLastNormalization(result);
+      await loadItems();
+    } catch (normalizationError) {
+      setError(
+        normalizationError instanceof Error
+          ? normalizationError.message
+          : "Unable to run normalization"
+      );
+    } finally {
+      setNormalizing(false);
+    }
+  }
+
   return (
     <section className="border border-white/10 bg-white/[0.035]">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 p-5">
         <div>
           <h2 className="text-xl font-semibold text-white">Intelligence Collection</h2>
           <p className="mt-1 text-sm text-slate-400">
-            {items.length} recent items / {rawItems} raw
+            {items.length} recent items / {rawItems} raw / {normalizedItems} normalized
           </p>
         </div>
         <div className="flex gap-2">
@@ -143,6 +187,15 @@ export function IntelligenceCollection() {
             <DownloadCloud className="h-4 w-4" aria-hidden="true" />
             {collecting ? "Collecting" : "Collect RSS"}
           </button>
+          <button
+            type="button"
+            onClick={() => void runNormalization()}
+            disabled={normalizing}
+            className="inline-flex h-10 items-center gap-2 border border-signal/40 bg-signal/10 px-3 text-sm font-semibold text-signal transition hover:border-signal hover:bg-signal/15 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Fingerprint className="h-4 w-4" aria-hidden="true" />
+            {normalizing ? "Normalizing" : "Normalize"}
+          </button>
         </div>
       </div>
 
@@ -154,6 +207,16 @@ export function IntelligenceCollection() {
           <span>Created {lastRun.created}</span>
           <span>Duplicates {lastRun.duplicates}</span>
           <span>Errors {lastRun.errors}</span>
+        </div>
+      ) : null}
+
+      {lastNormalization ? (
+        <div className="grid gap-3 border-b border-white/10 p-5 text-sm text-slate-300 sm:grid-cols-5">
+          <span>Status {lastNormalization.status}</span>
+          <span>Candidates {lastNormalization.candidates}</span>
+          <span>Normalized {lastNormalization.normalized}</span>
+          <span>Duplicates {lastNormalization.duplicates}</span>
+          <span>Failed {lastNormalization.failed}</span>
         </div>
       ) : null}
 
@@ -175,6 +238,11 @@ export function IntelligenceCollection() {
                 <span className="border border-white/10 px-2 py-1 text-xs uppercase text-slate-300">
                   {item.status}
                 </span>
+                {item.language ? (
+                  <span className="border border-ice/20 px-2 py-1 text-xs uppercase text-ice">
+                    {item.language}
+                  </span>
+                ) : null}
               </div>
               <a
                 href={item.url}
@@ -184,15 +252,18 @@ export function IntelligenceCollection() {
               >
                 {item.url}
               </a>
-              {item.summary ? (
-                <p className="line-clamp-2 text-sm leading-6 text-slate-400">{item.summary}</p>
+              {item.normalized_content || item.summary ? (
+                <p className="line-clamp-2 text-sm leading-6 text-slate-400">
+                  {item.normalized_content ?? item.summary}
+                </p>
               ) : null}
               <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                 <span className="inline-flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                   Collected {new Date(item.collected_at).toLocaleString()}
                 </span>
-                <span>Hash {item.content_hash.slice(0, 12)}</span>
+                <span>Hash {(item.normalized_hash ?? item.content_hash).slice(0, 12)}</span>
+                {item.is_duplicate ? <span>Duplicate</span> : null}
               </div>
             </article>
           ))

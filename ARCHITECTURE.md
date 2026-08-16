@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 2 - Intelligence Collection.
+Phase 3 - Normalization.
 
 ## Monorepo layout
 
@@ -22,8 +22,10 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.system`: health and readiness routes
 - `cybersec_api.api.sources`: source management routes
 - `cybersec_api.api.collection`: manual collection routes
+- `cybersec_api.api.normalization`: manual normalization routes
 - `cybersec_api.api.items`: collected item routes
 - `cybersec_api.collectors`: RSS collection and scheduler logic
+- `cybersec_api.normalizers`: text extraction, language detection and duplicate marking
 - `cybersec_api.core.config`: pydantic-settings configuration
 - `cybersec_api.core.logging`: structlog configuration
 - `cybersec_api.db.session`: async SQLAlchemy engine/session
@@ -71,11 +73,29 @@ Collection updates source health fields:
 The scheduler uses APScheduler and is disabled by default. Enable it with
 `COLLECTOR_SCHEDULER_ENABLED=true`.
 
+## Normalization
+
+Phase 3 converts collected raw items into a normalized representation. The
+normalizer extracts readable text from HTML, collapses whitespace, detects a
+simple language code, computes a normalized SHA-256 hash and marks duplicates
+without deleting the original record.
+
+Normalization writes these item fields:
+
+- `normalized_title`
+- `normalized_content`
+- `normalized_hash`
+- `language`
+- `is_duplicate`
+- `duplicate_of_item_id`
+- `normalization_error`
+- `normalized_at`
+
 ## Frontend
 
 The frontend is a Next.js App Router application with TypeScript and Tailwind
-CSS. Phase 2 exposes source management, manual RSS collection and recent raw
-items.
+CSS. Phase 3 exposes source management, manual RSS collection, manual
+normalization and recent collected items with normalized metadata.
 
 ## Runtime
 
@@ -100,10 +120,11 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 2 fetches RSS sources only. Source URLs and response bodies are untrusted
-input. The collector applies URL scheme validation, request timeouts, redirect
-limits and response-size limits. The `users` table exists so authentication and
-RBAC can be added later without reshaping the foundation.
+Phase 3 fetches RSS sources only and normalizes content into plain text before
+showing the normalized body in the UI. Source URLs and response bodies are
+untrusted input. The collector applies URL scheme validation, request timeouts,
+redirect limits and response-size limits. The `users` table exists so
+authentication and RBAC can be added later without reshaping the foundation.
 
 ## Future direction
 

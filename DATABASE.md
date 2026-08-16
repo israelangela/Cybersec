@@ -64,6 +64,14 @@ Columns:
 - `summary`
 - `raw_content`
 - `status`
+- `normalized_title`
+- `normalized_content`
+- `normalized_hash`
+- `language`
+- `is_duplicate`
+- `duplicate_of_item_id`
+- `normalization_error`
+- `normalized_at`
 - `published_at`
 - `collected_at`
 - `created_at`
@@ -75,7 +83,10 @@ Columns:
 - `sources.url` is unique.
 - `items.url` is unique.
 - `items.content_hash` is unique.
+- `items.normalized_hash` is indexed.
+- `items.language` is indexed.
 - `items.source_id` references `sources.id` with cascade delete.
+- `items.duplicate_of_item_id` references `items.id` with set null on delete.
 - `items.source_id` and `items.external_id` are unique as a pair.
 
 ## Future Tables
@@ -113,3 +124,12 @@ RSS collection creates `items` with status `raw`. Deduplication checks:
 - `items.url`
 - `items.content_hash`
 - `items.source_id` plus `items.external_id`
+
+## Phase 3 Notes
+
+Phase 3 adds migration `0002_item_normalization`.
+
+Normalization preserves the original raw collection fields and adds normalized
+metadata on the same `items` row. Duplicates are marked with `status =
+duplicate`, `is_duplicate = true` and `duplicate_of_item_id` pointing to the
+first normalized item with the same normalized hash.

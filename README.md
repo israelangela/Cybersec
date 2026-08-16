@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 2 - Intelligence Collection is implemented.
+Phase 3 - Normalization is implemented.
 
 Included so far:
 
@@ -24,12 +24,17 @@ Included so far:
 - Manual collection endpoints
 - Basic scheduler configuration
 - Item listing API and UI
+- Text normalization pipeline
+- HTML-to-text extraction for collected items
+- Heuristic language detection
+- Normalized SHA-256 hashing
+- Duplicate marking based on normalized content
+- Manual normalization endpoints and UI action
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
 Not included yet:
 
-- Normalization
 - AI enrichment
 - RAG
 - Reports
@@ -61,6 +66,7 @@ Open:
 - Sources API: `http://localhost:8000/sources`
 - Items API: `http://localhost:8000/items`
 - Collection run: `POST http://localhost:8000/collection/run`
+- Normalization run: `POST http://localhost:8000/normalization/run`
 
 ## Services
 
@@ -107,6 +113,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 3 - Normalization.
+Next recommended step: Phase 4 - Intelligence UI.
 
-Do not begin Phase 3 until explicitly requested.
+Do not begin Phase 4 until explicitly requested.
