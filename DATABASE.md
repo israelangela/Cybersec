@@ -177,3 +177,44 @@ Constraints:
 - `enrichments.item_id` references `items.id` with cascade delete.
 - `enrichments.status` is indexed.
 - `enrichments.severity` is indexed.
+
+## Phase 6 Notes
+
+Phase 6 adds migration `0004_cyber_entities`.
+
+### `cyber_entities`
+
+Stores derived cyber intelligence entities extracted from completed enrichment
+rows. One row represents one entity occurrence in one item.
+
+Columns:
+
+- `id`
+- `item_id`
+- `enrichment_id`
+- `entity_type`
+- `value`
+- `normalized_value`
+- `severity`
+- `confidence`
+- `risk_score`
+- `evidence`
+- `first_seen_at`
+- `last_seen_at`
+- `created_at`
+- `updated_at`
+
+Constraints:
+
+- `cyber_entities.item_id` references `items.id` with cascade delete.
+- `cyber_entities.enrichment_id` references `enrichments.id` with cascade delete.
+- `item_id`, `entity_type` and `normalized_value` are unique as a group.
+- `entity_type`, `normalized_value`, `severity` and `risk_score` are indexed.
+
+Entity types currently derived:
+
+- `cve`
+- `ioc`
+- `mitre_attack`
+- `tag`
+- `threat_actor`

@@ -1,6 +1,6 @@
 # CyberSec API
 
-Phase 5 backend for CyberSec.
+Phase 6 backend for CyberSec.
 
 Current backend capabilities:
 
@@ -11,3 +11,5 @@ Current backend capabilities:
 - Item filtering and statistics
 - Item normalization and duplicate marking
 - AI enrichment through OpenRouter-compatible chat completions
+- Cyber intelligence entity extraction and scoring
+- Intelligence sync, aggregate entity and per-item entity endpoints

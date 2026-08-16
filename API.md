@@ -46,8 +46,9 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 5 exposes system status, source management, RSS collection, item listing,
-item statistics, item normalization and AI enrichment endpoints.
+Phase 6 exposes system status, source management, RSS collection, item listing,
+item statistics, item normalization, AI enrichment and cyber intelligence
+entity endpoints.
 
 ## Sources
 
@@ -185,6 +186,53 @@ existing enrichment.
 Optional query parameters:
 
 - `limit`: number of items to enrich, from `1` to `50`
+
+## Cyber Intelligence
+
+Cyber intelligence endpoints derive structured entities from completed AI
+enrichments. They do not call the AI provider.
+
+### `POST /intelligence/sync`
+
+Synchronizes derived cyber entities from completed enrichments.
+
+Optional query parameters:
+
+- `limit`: number of enrichments to inspect, from `1` to `500`
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "enrichments_checked": 10,
+  "entities_created": 45,
+  "entities_deleted": 12,
+  "skipped": 0
+}
+```
+
+### `GET /intelligence/entities`
+
+Lists aggregate cyber entities grouped by type and normalized value.
+
+Optional query parameters:
+
+- `entity_type`: `cve`, `ioc`, `mitre_attack`, `tag` or `threat_actor`
+- `severity`: enrichment severity filter
+- `min_score`: minimum risk score from `1` to `100`
+- `search`: search entity value or type
+- `limit`: number of entities, from `1` to `500`
+- `offset`: result offset
+
+### `GET /intelligence/items/{item_id}/entities`
+
+Returns all cyber entity occurrences derived for one item.
+
+### `GET /intelligence/stats`
+
+Returns total entities, unique entities, high-risk entity count, distribution by
+entity type and top-risk entities for the workbench.
 
 ## Collection
 

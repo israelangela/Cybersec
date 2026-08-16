@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 5 - AI Enrichment.
+Phase 6 - Cyber Intelligence.
 
 ## Monorepo layout
 
@@ -23,10 +23,12 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.sources`: source management routes
 - `cybersec_api.api.collection`: manual collection routes
 - `cybersec_api.api.enrichment`: manual AI enrichment routes
+- `cybersec_api.api.intelligence`: cyber entity synchronization and analytics routes
 - `cybersec_api.api.normalization`: manual normalization routes
 - `cybersec_api.api.items`: collected item routes
 - `cybersec_api.collectors`: RSS collection and scheduler logic
 - `cybersec_api.enrichment`: OpenRouter client and enrichment orchestration
+- `cybersec_api.intelligence`: derived entity extraction and risk scoring
 - `cybersec_api.normalizers`: text extraction, language detection and duplicate marking
 - `cybersec_api.core.config`: pydantic-settings configuration
 - `cybersec_api.core.logging`: structlog configuration
@@ -45,7 +47,13 @@ Initial tables:
 - `sources`
 - `items`
 
-Future phases may add enrichments, stories, reports, departments, watchlists, audit logs, alerts and model usage.
+Current derived intelligence tables:
+
+- `enrichments`
+- `cyber_entities`
+
+Future phases may add stories, reports, departments, watchlists, audit logs,
+alerts and model usage.
 
 ## Source Management
 
@@ -135,6 +143,28 @@ Enrichment output includes:
 - MITRE ATT&CK techniques
 - Recommended defensive actions
 
+## Cyber Intelligence
+
+Phase 6 derives structured cyber entities from completed enrichments. The
+derived `cyber_entities` table stores one entity occurrence per item and keeps
+the original enrichment separate for auditability.
+
+Supported entity classes:
+
+- CVEs
+- IOCs
+- MITRE ATT&CK techniques
+- Tags
+- Threat actors using generic APT, TA, UNC and FIN patterns
+
+Each entity receives a deterministic risk score based on enrichment severity,
+confidence and entity type. Synchronization is manual through
+`POST /intelligence/sync`, so operators control when model-derived intelligence
+is promoted into the analytical layer.
+
+The workbench exposes entity counts, high-risk entities, aggregate entity radar
+and per-item entity evidence.
+
 ## Runtime
 
 Docker Compose runs:
@@ -158,11 +188,10 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 5 sends normalized item text to the configured AI provider only when a
-manual enrichment endpoint is called. Source URLs, feed bodies and AI responses
-are untrusted input. The UI renders enrichment fields as text and never executes
-or injects external HTML. The `users` table exists so authentication and RBAC
-can be added later without reshaping the foundation.
+Phase 6 treats derived cyber entities as untrusted model-derived data. Source
+URLs, feed bodies, AI responses and extracted entities are rendered as text and
+never executed or injected as HTML. The `users` table exists so authentication
+and RBAC can be added later without reshaping the foundation.
 
 ## Future direction
 
