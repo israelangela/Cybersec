@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from cybersec_api.db.base import Base
 
 if TYPE_CHECKING:
+    from cybersec_api.models.cyber_entity import CyberEntity
     from cybersec_api.models.enrichment import Enrichment
     from cybersec_api.models.source import Source
 
@@ -56,6 +57,9 @@ class Item(Base):
     source: Mapped[Source] = relationship(back_populates="items")
     enrichment: Mapped[Enrichment | None] = relationship(
         back_populates="item", cascade="all, delete-orphan", uselist=False
+    )
+    cyber_entities: Mapped[list[CyberEntity]] = relationship(
+        back_populates="item", cascade="all, delete-orphan"
     )
 
     @property

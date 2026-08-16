@@ -2,8 +2,8 @@
 
 ## Current posture
 
-Phase 5 creates AI enrichment on top of normalized RSS collection. It does not
-implement authentication, RBAC or RAG yet.
+Phase 6 creates derived cyber intelligence entities on top of AI-enriched RSS
+collection. It does not implement authentication, RBAC or RAG yet.
 
 ## Security rules
 
@@ -63,3 +63,12 @@ key is read from environment variables and is never stored in the repository.
 Model output is validated as structured JSON where supported, persisted as
 untrusted data and rendered as text. Prompt-injection defenses, tenant isolation,
 usage budgets and full audit logging remain future work.
+
+## Phase 6 Threat Notes
+
+Cyber intelligence entities are derived from untrusted model output and must be
+treated as analyst-assistive metadata, not verified truth. The sync job does not
+call external providers, but it promotes model-derived CVEs, IOCs, MITRE tags
+and actor identifiers into indexed tables. The UI renders all entities as text.
+Future phases should add provenance review, confidence thresholds, suppression
+lists, audit trails and analyst approval workflows before automation or alerting.

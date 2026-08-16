@@ -85,12 +85,25 @@ docker compose run --rm backend alembic upgrade head
 
 ## Phase Discipline
 
-CyberSec is built phase by phase. Phase 5 is complete only as AI enrichment of
-normalized intelligence. Phase 6 must focus on cyber intelligence entities such
-as CVEs, IOCs, MITRE, threat actors and scoring, and must not introduce RAG,
-reports or alerts unless explicitly requested later.
+CyberSec is built phase by phase. Phase 6 is complete as a derived cyber
+intelligence layer over enriched items. Phase 7 must focus on stories,
+embeddings, pgvector and clustering, and must not introduce RAG, reports or
+alerts unless explicitly requested later.
 
 ## AI Enrichment
 
 Set `OPENROUTER_API_KEY` locally before running live enrichment. Keep real keys
 out of commits and logs.
+
+## Cyber Intelligence
+
+Run AI enrichment before synchronizing cyber entities:
+
+```powershell
+docker compose run --rm backend alembic upgrade head
+Invoke-RestMethod -Method Post "http://localhost:8000/enrichment/run?limit=10"
+Invoke-RestMethod -Method Post "http://localhost:8000/intelligence/sync?limit=500"
+```
+
+Cyber intelligence sync is deterministic and does not call the AI provider. It
+rebuilds derived entities for completed enrichments inside the configured limit.

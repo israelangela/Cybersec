@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 5 - AI Enrichment is implemented.
+Phase 6 - Cyber Intelligence is implemented.
 
 Included so far:
 
@@ -38,6 +38,10 @@ Included so far:
 - AI enrichment API using OpenRouter-compatible chat completions
 - AI summary, severity, confidence, tags, CVEs, IOCs, MITRE techniques and actions
 - Enrichment workbench actions for selected items and small batches
+- Cyber intelligence entity extraction from enriched items
+- CVE, IOC, MITRE, tag and threat actor entity indexing
+- Risk scoring for extracted cyber entities
+- Intelligence synchronization endpoints and workbench panel
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
@@ -77,6 +81,9 @@ Open:
 - Item stats: `GET http://localhost:8000/items/stats`
 - Enrichment run: `POST http://localhost:8000/enrichment/run`
 - Item enrichment: `POST http://localhost:8000/enrichment/items/{item_id}/run`
+- Intelligence sync: `POST http://localhost:8000/intelligence/sync`
+- Intelligence stats: `GET http://localhost:8000/intelligence/stats`
+- Cyber entities: `GET http://localhost:8000/intelligence/entities`
 
 ## Services
 
@@ -127,6 +134,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 6 - Cyber Intelligence.
+Next recommended step: Phase 7 - Stories.
 
-Do not begin Phase 6 until explicitly requested.
+Do not begin Phase 7 until explicitly requested.

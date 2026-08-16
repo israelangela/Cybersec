@@ -2,14 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Activity,
   Clock,
   DownloadCloud,
   ExternalLink,
   Eye,
   Fingerprint,
   Languages,
+  Network,
   Sparkles,
   RefreshCw,
+  Radar,
   Search,
   ShieldAlert
 } from "lucide-react";
@@ -100,6 +103,57 @@ type EnrichmentRunResult = {
   skipped: number;
 };
 
+type CyberEntity = {
+  id: string;
+  item_id: string;
+  enrichment_id: string;
+  entity_type: string;
+  value: string;
+  normalized_value: string;
+  severity: string | null;
+  confidence: number | null;
+  risk_score: number;
+  evidence: Record<string, unknown>;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+};
+
+type CyberEntityAggregate = {
+  entity_type: string;
+  value: string;
+  normalized_value: string;
+  occurrences: number;
+  max_risk_score: number;
+  avg_confidence: number | null;
+  severity: string | null;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+};
+
+type IntelligenceStats = {
+  total_entities: number;
+  unique_entities: number;
+  high_risk_entities: number;
+  by_type: Array<{ entity_type: string; count: number }>;
+  top_risks: Array<{
+    entity_type: string;
+    value: string;
+    normalized_value: string;
+    risk_score: number;
+    severity: string | null;
+    item_id: string;
+    last_seen_at: string | null;
+  }>;
+};
+
+type IntelligenceSyncResult = {
+  status: string;
+  enrichments_checked: number;
+  entities_created: number;
+  entities_deleted: number;
+  skipped: number;
+};
+
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const statusOptions = ["all", "normalized", "raw", "duplicate", "normalization_error"];
 
@@ -132,6 +186,9 @@ export function IntelligenceWorkbench() {
   const [items, setItems] = useState<Item[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
   const [stats, setStats] = useState<ItemStats | null>(null);
+  const [intelligenceStats, setIntelligenceStats] = useState<IntelligenceStats | null>(null);
+  const [cyberEntities, setCyberEntities] = useState<CyberEntityAggregate[]>([]);
+  const [selectedCyberEntities, setSelectedCyberEntities] = useState<CyberEntity[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -144,9 +201,12 @@ export function IntelligenceWorkbench() {
   const [normalizing, setNormalizing] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [batchEnriching, setBatchEnriching] = useState(false);
+  const [syncingIntelligence, setSyncingIntelligence] = useState(false);
   const [lastRun, setLastRun] = useState<CollectionRunResult | null>(null);
   const [lastNormalization, setLastNormalization] = useState<NormalizationRunResult | null>(null);
   const [lastEnrichment, setLastEnrichment] = useState<EnrichmentRunResult | null>(null);
+  const [lastIntelligenceSync, setLastIntelligenceSync] =
+    useState<IntelligenceSyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const selectedItem = useMemo(
@@ -163,6 +223,28 @@ export function IntelligenceWorkbench() {
   async function loadStats() {
     const data = await apiRequest<ItemStats>("/items/stats");
     setStats(data);
+  }
+
+  async function loadIntelligenceStats() {
+    const data = await apiRequest<IntelligenceStats>("/intelligence/stats");
+    setIntelligenceStats(data);
+  }
+
+  async function loadCyberEntities() {
+    const data = await apiRequest<CyberEntityAggregate[]>(
+      "/intelligence/entities?limit=12&min_score=1"
+    );
+    setCyberEntities(data);
+  }
+
+  async function loadSelectedCyberEntities(itemId: string | null) {
+    if (!itemId) {
+      setSelectedCyberEntities([]);
+      return;
+    }
+
+    const data = await apiRequest<CyberEntity[]>(`/intelligence/items/${itemId}/entities`);
+    setSelectedCyberEntities(data);
   }
 
   async function loadItems() {
@@ -206,7 +288,7 @@ export function IntelligenceWorkbench() {
   }
 
   async function refreshAll() {
-    await Promise.all([loadSources(), loadStats(), loadItems()]);
+    await Promise.all([loadSources(), loadStats(), loadIntelligenceStats(), loadCyberEntities(), loadItems()]);
   }
 
   useEffect(() => {
@@ -226,6 +308,14 @@ export function IntelligenceWorkbench() {
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, sourceId, language, duplicatesOnly, limit]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadSelectedCyberEntities(selectedItem?.id ?? null);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [selectedItem?.id]);
 
   async function runCollection() {
     setCollecting(true);
@@ -310,6 +400,28 @@ export function IntelligenceWorkbench() {
     }
   }
 
+  async function syncIntelligence() {
+    setSyncingIntelligence(true);
+    setError(null);
+
+    try {
+      const result = await apiRequest<IntelligenceSyncResult>("/intelligence/sync?limit=500", {
+        method: "POST"
+      });
+      setLastIntelligenceSync(result);
+      await Promise.all([
+        loadStats(),
+        loadIntelligenceStats(),
+        loadCyberEntities(),
+        loadSelectedCyberEntities(selectedItem?.id ?? null)
+      ]);
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : "Unable to sync intelligence");
+    } finally {
+      setSyncingIntelligence(false);
+    }
+  }
+
   return (
     <section className="grid gap-6">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
@@ -327,6 +439,108 @@ export function IntelligenceWorkbench() {
             <p className="mt-2 text-2xl font-semibold text-white">{metric.value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="grid gap-4 border border-white/10 bg-white/[0.035] p-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+          {[
+            {
+              label: "Cyber Entities",
+              value: intelligenceStats?.total_entities ?? 0,
+              icon: Network
+            },
+            {
+              label: "Unique Entities",
+              value: intelligenceStats?.unique_entities ?? 0,
+              icon: Radar
+            },
+            {
+              label: "High Risk",
+              value: intelligenceStats?.high_risk_entities ?? 0,
+              icon: Activity
+            }
+          ].map((metric) => {
+            const MetricIcon = metric.icon;
+
+            return (
+              <div key={metric.label} className="border border-white/10 bg-obsidian/60 p-4">
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <MetricIcon className="h-4 w-4 text-fuchsia-200" aria-hidden="true" />
+                  {metric.label}
+                </div>
+                <p className="mt-2 text-2xl font-semibold text-white">{metric.value}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <section className="min-w-0">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-white">Top Risk Entities</h2>
+              <span className="text-xs uppercase text-slate-500">Score</span>
+            </div>
+            <div className="mt-4 grid gap-2">
+              {(intelligenceStats?.top_risks ?? []).slice(0, 6).map((entity) => (
+                <button
+                  key={`${entity.item_id}-${entity.normalized_value}`}
+                  type="button"
+                  onClick={() => setSelectedItemId(entity.item_id)}
+                  className="grid grid-cols-[1fr_48px] gap-3 border border-white/10 p-3 text-left transition hover:border-fuchsia-200/40"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-slate-200">
+                      {entity.normalized_value}
+                    </span>
+                    <span className="text-xs uppercase text-slate-500">
+                      {entity.entity_type} {entity.severity ?? "unknown"}
+                    </span>
+                  </span>
+                  <span className="text-right text-sm font-semibold text-fuchsia-200">
+                    {entity.risk_score}
+                  </span>
+                </button>
+              ))}
+              {intelligenceStats?.top_risks.length === 0 ? (
+                <p className="border border-white/10 p-3 text-sm text-slate-400">
+                  No synchronized intelligence entities
+                </p>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="min-w-0">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-white">Entity Radar</h2>
+              <span className="text-xs uppercase text-slate-500">Occurrences</span>
+            </div>
+            <div className="mt-4 grid gap-2">
+              {cyberEntities.slice(0, 6).map((entity) => (
+                <div
+                  key={`${entity.entity_type}-${entity.normalized_value}`}
+                  className="grid grid-cols-[1fr_56px] gap-3 border border-white/10 p-3"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-slate-200">
+                      {entity.normalized_value}
+                    </span>
+                    <span className="text-xs uppercase text-slate-500">
+                      {entity.entity_type} risk {entity.max_risk_score}
+                    </span>
+                  </span>
+                  <span className="text-right text-sm text-slate-300">
+                    {entity.occurrences}
+                  </span>
+                </div>
+              ))}
+              {cyberEntities.length === 0 ? (
+                <p className="border border-white/10 p-3 text-sm text-slate-400">
+                  Run Sync Intel after enriching items
+                </p>
+              ) : null}
+            </div>
+          </section>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -375,6 +589,15 @@ export function IntelligenceWorkbench() {
                 >
                   <Sparkles className="h-4 w-4" aria-hidden="true" />
                   {batchEnriching ? "Enriching" : "Enrich 10"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void syncIntelligence()}
+                  disabled={syncingIntelligence}
+                  className="inline-flex h-10 items-center gap-2 border border-fuchsia-300/30 bg-fuchsia-300/10 px-3 text-sm font-semibold text-fuchsia-200 transition hover:border-fuchsia-200 hover:bg-fuchsia-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Radar className="h-4 w-4" aria-hidden="true" />
+                  {syncingIntelligence ? "Syncing" : "Sync Intel"}
                 </button>
               </div>
             </div>
@@ -495,6 +718,16 @@ export function IntelligenceWorkbench() {
               <span>Enriched {lastEnrichment.enriched}</span>
               <span>Failed {lastEnrichment.failed}</span>
               <span>Skipped {lastEnrichment.skipped}</span>
+            </div>
+          ) : null}
+
+          {lastIntelligenceSync ? (
+            <div className="grid gap-3 border-b border-white/10 p-4 text-sm text-slate-300 sm:grid-cols-5">
+              <span>Status {lastIntelligenceSync.status}</span>
+              <span>Checked {lastIntelligenceSync.enrichments_checked}</span>
+              <span>Created {lastIntelligenceSync.entities_created}</span>
+              <span>Deleted {lastIntelligenceSync.entities_deleted}</span>
+              <span>Skipped {lastIntelligenceSync.skipped}</span>
             </div>
           ) : null}
 
@@ -677,6 +910,35 @@ export function IntelligenceWorkbench() {
                       ))}
                     </ul>
                   ) : null}
+                </div>
+              ) : null}
+
+              {selectedCyberEntities.length ? (
+                <div className="grid gap-3 border border-fuchsia-300/20 bg-fuchsia-300/5 p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <Radar className="h-4 w-4 text-fuchsia-200" aria-hidden="true" />
+                    Cyber Entities
+                  </div>
+                  <div className="grid gap-2">
+                    {selectedCyberEntities.slice(0, 12).map((entity) => (
+                      <div
+                        key={entity.id}
+                        className="grid grid-cols-[1fr_44px] gap-3 border border-white/10 p-2"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm text-slate-200">
+                            {entity.normalized_value}
+                          </span>
+                          <span className="text-xs uppercase text-slate-500">
+                            {entity.entity_type} {entity.severity ?? "unknown"}
+                          </span>
+                        </span>
+                        <span className="text-right text-sm font-semibold text-fuchsia-200">
+                          {entity.risk_score}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : null}
 
