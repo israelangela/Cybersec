@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 9 - Ask CyberSec / RAG / citations is implemented.
+Phase 10 - Reports is implemented.
 
 Included so far:
 
@@ -51,12 +51,13 @@ Included so far:
 - Pipeline controls for RSS collection, normalization, AI enrichment, entity sync and story sync
 - Ask CyberSec RAG endpoint over enriched news, entities and stories
 - Cited answers with source news links, story links and entity pivots
+- Persistent report generation from stories, entities and cited source items
+- Markdown report export for analyst review and sharing
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
 Not included yet:
 
-- Reports
 - Alerts
 - Authentication and RBAC
 
@@ -99,6 +100,8 @@ Open:
 - Entity context: `GET http://localhost:8000/intelligence/entities/context?entity_type=cve&value=CVE-2026-0001`
 - Item context: `GET http://localhost:8000/items/{item_id}/context`
 - Ask CyberSec: `POST http://localhost:8000/ask`
+- Reports API: `GET http://localhost:8000/reports`
+- Generate report: `POST http://localhost:8000/reports/generate`
 
 ## Services
 
@@ -150,6 +153,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 10 - Reports.
+Next recommended step: Phase 11 - Automation / alerts / watchlists.
 
-Do not begin Phase 10 until explicitly requested.
+Do not begin Phase 11 until explicitly requested.

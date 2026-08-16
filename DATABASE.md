@@ -94,7 +94,6 @@ Columns:
 
 Future phases may add:
 
-- `reports`
 - `departments`
 - `watchlists`
 - `topics`
@@ -289,3 +288,71 @@ Ask CyberSec retrieves evidence from existing `items`, `enrichments`,
 `cyber_entities`, `stories`, `story_items` and `sources` rows. Conversations and
 messages are not persisted yet; future phases may add `ask_conversations`,
 `ask_messages` and `model_usage`.
+
+## Phase 10 Notes
+
+Phase 10 adds migration `0006_reports`.
+
+### `reports`
+
+Stores generated draft intelligence reports.
+
+Columns:
+
+- `id`
+- `title`
+- `report_type`
+- `status`
+- `summary`
+- `body_markdown`
+- `severity`
+- `risk_score`
+- `story_count`
+- `item_count`
+- `entity_count`
+- `source_count`
+- `period_start`
+- `period_end`
+- `filters`
+- `created_at`
+- `updated_at`
+
+Constraints:
+
+- `report_type`, `status`, `severity` and `risk_score` are indexed.
+
+### `report_stories`
+
+Stores the report-to-story links and report ordering.
+
+Columns:
+
+- `report_id`
+- `story_id`
+- `position`
+- `created_at`
+
+Constraints:
+
+- `report_id` references `reports.id` with cascade delete.
+- `story_id` references `stories.id` with cascade delete.
+- `report_id` and `story_id` are the composite primary key.
+- `story_id` is indexed.
+
+### `report_items`
+
+Stores the report-to-source-item evidence citations.
+
+Columns:
+
+- `report_id`
+- `item_id`
+- `citation_id`
+- `created_at`
+
+Constraints:
+
+- `report_id` references `reports.id` with cascade delete.
+- `item_id` references `items.id` with cascade delete.
+- `report_id` and `item_id` are the composite primary key.
+- `item_id` is indexed.

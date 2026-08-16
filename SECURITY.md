@@ -2,9 +2,9 @@
 
 ## Current posture
 
-Phase 9 creates Ask CyberSec, a cited RAG surface on top of story clusters,
-AI-enriched RSS collection and derived cyber intelligence entities. It does not
-implement authentication, RBAC, reports or alerts yet.
+Phase 10 creates persistent draft reports on top of story clusters, AI-enriched
+RSS collection and derived cyber intelligence entities. It does not implement
+authentication, RBAC, alerts or external delivery yet.
 
 ## Security rules
 
@@ -101,3 +101,12 @@ persist conversations yet, does not enforce per-user authorization and does not
 protect against prompt injection beyond evidence-only prompting and plain-text
 rendering. Future phases should add authorized retrieval, prompt-injection
 testing, audit logs, usage limits and model-cost controls.
+
+## Phase 10 Threat Notes
+
+Reports persist summaries and Markdown generated from untrusted source feeds,
+untrusted AI enrichment and derived analytical metadata. Reports should be
+treated as drafts until reviewed by an analyst. Markdown is rendered as text in
+the current UI; future rich rendering must sanitize content. Reports do not
+implement approval workflows, recipients, file signing, redaction, access
+control or audit trails yet.
