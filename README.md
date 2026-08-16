@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 1 - Source Management is implemented.
+Phase 2 - Intelligence Collection is implemented.
 
 Included so far:
 
@@ -20,12 +20,15 @@ Included so far:
 - `GET /ready`
 - Source management API
 - Source management UI
+- RSS intelligence collection
+- Manual collection endpoints
+- Basic scheduler configuration
+- Item listing API and UI
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
 Not included yet:
 
-- RSS collection
 - Normalization
 - AI enrichment
 - RAG
@@ -56,6 +59,8 @@ Open:
 - Health: `http://localhost:8000/health`
 - Readiness: `http://localhost:8000/ready`
 - Sources API: `http://localhost:8000/sources`
+- Items API: `http://localhost:8000/items`
+- Collection run: `POST http://localhost:8000/collection/run`
 
 ## Services
 
@@ -102,6 +107,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 2 - Intelligence Collection.
+Next recommended step: Phase 3 - Normalization.
 
-Do not begin Phase 2 until explicitly requested.
+Do not begin Phase 3 until explicitly requested.

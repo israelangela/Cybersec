@@ -33,7 +33,7 @@ The backend is a FastAPI application packaged under `backend/src/cybersec_api`.
 Important modules:
 
 - `main.py`: FastAPI app setup
-- `api/routes.py`: Phase 0 system endpoints
+- `api/routes.py`: API router composition
 - `core/config.py`: typed settings
 - `core/logging.py`: structured logging
 - `db/session.py`: async SQLAlchemy engine and session dependency
@@ -54,7 +54,7 @@ The frontend is a Next.js App Router application in `frontend/`.
 Important files:
 
 - `app/layout.tsx`: root layout and metadata
-- `app/page.tsx`: Phase 0 status screen
+- `app/page.tsx`: operational dashboard shell
 - `app/globals.css`: dark visual foundation
 - `lib/system-status.ts`: backend health integration
 
@@ -85,6 +85,6 @@ docker compose run --rm backend alembic upgrade head
 
 ## Phase Discipline
 
-CyberSec is built phase by phase. Phase 1 is complete only as source
-management. Phase 2 must focus on intelligence collection and must not introduce
-AI, RAG, reports or alerts unless explicitly requested later.
+CyberSec is built phase by phase. Phase 2 is complete only as RSS intelligence
+collection. Phase 3 must focus on normalization and must not introduce AI, RAG,
+reports or alerts unless explicitly requested later.

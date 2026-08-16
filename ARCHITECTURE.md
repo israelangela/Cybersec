@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 1 - Source Management.
+Phase 2 - Intelligence Collection.
 
 ## Monorepo layout
 
@@ -21,6 +21,9 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.routes`: API router composition
 - `cybersec_api.api.system`: health and readiness routes
 - `cybersec_api.api.sources`: source management routes
+- `cybersec_api.api.collection`: manual collection routes
+- `cybersec_api.api.items`: collected item routes
+- `cybersec_api.collectors`: RSS collection and scheduler logic
 - `cybersec_api.core.config`: pydantic-settings configuration
 - `cybersec_api.core.logging`: structlog configuration
 - `cybersec_api.db.session`: async SQLAlchemy engine/session
@@ -53,10 +56,26 @@ Supported source types:
 - `api`
 - `other`
 
+## Intelligence Collection
+
+Phase 2 adds RSS collection. The collector downloads enabled RSS sources,
+parses feed entries, creates raw `items` and avoids duplicates by checking URL,
+content hash and source-specific external ID.
+
+Collection updates source health fields:
+
+- `last_fetched_at`
+- `last_error`
+- `error_count`
+
+The scheduler uses APScheduler and is disabled by default. Enable it with
+`COLLECTOR_SCHEDULER_ENABLED=true`.
+
 ## Frontend
 
 The frontend is a Next.js App Router application with TypeScript and Tailwind
-CSS. Phase 1 exposes an operational source management dashboard.
+CSS. Phase 2 exposes source management, manual RSS collection and recent raw
+items.
 
 ## Runtime
 
@@ -76,14 +95,15 @@ must remain untracked.
 
 ## Observability Foundation
 
-Phase 0 configures structured JSON logging with `structlog`. Request IDs,
-correlation IDs, metrics and OpenTelemetry are planned for future phases.
+The foundation configures structured JSON logging with `structlog`. Request
+IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 1 exposes source mutation endpoints but does not fetch remote content.
-External source URLs are stored as untrusted input. The `users` table exists so
-authentication and RBAC can be added later without reshaping the foundation.
+Phase 2 fetches RSS sources only. Source URLs and response bodies are untrusted
+input. The collector applies URL scheme validation, request timeouts, redirect
+limits and response-size limits. The `users` table exists so authentication and
+RBAC can be added later without reshaping the foundation.
 
 ## Future direction
 

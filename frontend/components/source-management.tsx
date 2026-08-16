@@ -312,7 +312,7 @@ export function SourceManagement() {
             <h2 className="text-xl font-semibold text-white">
               {editingSourceId ? "Edit Source" : "New Source"}
             </h2>
-            <p className="mt-1 text-sm text-slate-400">Phase 1 management</p>
+            <p className="mt-1 text-sm text-slate-400">Source registry</p>
           </div>
           {editingSourceId ? (
             <button

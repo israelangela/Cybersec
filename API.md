@@ -46,7 +46,8 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 1 exposes system status and source management endpoints only.
+Phase 2 exposes system status, source management, RSS collection and item
+listing endpoints.
 
 ## Sources
 
@@ -106,3 +107,48 @@ Duplicate URLs return `409 Conflict`.
 Deletes a source and returns `204 No Content`.
 
 Deleting a source cascades to related items through the database relationship.
+
+## Items
+
+### `GET /items`
+
+Lists recently collected items.
+
+Optional query parameters:
+
+- `source_id`: filter by source UUID
+- `limit`: number of items, from `1` to `200`
+
+### `GET /items/{item_id}`
+
+Returns one collected item by UUID.
+
+Missing items return `404 Not Found`.
+
+## Collection
+
+### `POST /collection/run`
+
+Runs collection for all enabled RSS sources.
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "sources_checked": 1,
+  "fetched": 10,
+  "created": 8,
+  "duplicates": 2,
+  "skipped": 0,
+  "errors": 0,
+  "results": []
+}
+```
+
+### `POST /collection/sources/{source_id}/run`
+
+Runs collection for a single source.
+
+Disabled sources and non-RSS sources return a `skipped` result rather than
+fetching remote content.

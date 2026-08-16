@@ -1,9 +1,9 @@
 # CyberSec Security
 
-## Phase 0 posture
+## Current posture
 
-Phase 1 creates source management on top of the application foundation. It does
-not implement authentication, RBAC or external content ingestion yet.
+Phase 2 creates RSS collection on top of source management. It does not
+implement authentication, RBAC, AI enrichment or RAG yet.
 
 ## Security rules
 
@@ -31,3 +31,10 @@ safe example configuration, Dockerized runtime checks and `npm audit`.
 Source URLs are stored but not fetched in this phase. Future collection must
 treat every source URL and response body as untrusted input and add SSRF,
 redirect, timeout and content-size controls before any network retrieval.
+
+## Phase 2 Threat Notes
+
+RSS collection fetches enabled RSS source URLs. Current controls include
+`http/https` URL validation, request timeout, redirect limit and maximum response
+size. Phase 3 should add stronger normalization and sanitization before
+presenting external content beyond plain text summaries.

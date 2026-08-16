@@ -102,3 +102,14 @@ Phase 1 uses the existing `sources` table. No new migration is required.
 The application now manages source metadata but does not collect source content.
 Fields such as `last_fetched_at`, `last_error` and `error_count` are reserved
 for Phase 2 collection jobs.
+
+## Phase 2 Notes
+
+Phase 2 uses the existing `sources` and `items` tables. No new migration is
+required.
+
+RSS collection creates `items` with status `raw`. Deduplication checks:
+
+- `items.url`
+- `items.content_hash`
+- `items.source_id` plus `items.external_id`
