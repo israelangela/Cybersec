@@ -6,9 +6,9 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 0 - Foundation is implemented.
+Phase 1 - Source Management is implemented.
 
-Included in this phase:
+Included so far:
 
 - PostgreSQL with Docker Compose
 - FastAPI backend
@@ -18,12 +18,13 @@ Included in this phase:
 - Structured logging
 - `GET /health`
 - `GET /ready`
+- Source management API
+- Source management UI
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
 Not included yet:
 
-- Source management UI or CRUD
 - RSS collection
 - Normalization
 - AI enrichment
@@ -54,6 +55,7 @@ Open:
 - API docs: `http://localhost:8000/docs`
 - Health: `http://localhost:8000/health`
 - Readiness: `http://localhost:8000/ready`
+- Sources API: `http://localhost:8000/sources`
 
 ## Services
 
@@ -100,6 +102,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 1 - Source Management.
+Next recommended step: Phase 2 - Intelligence Collection.
 
-Do not begin Phase 1 until explicitly requested.
+Do not begin Phase 2 until explicitly requested.

@@ -46,5 +46,63 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 0 exposes system status endpoints only. Source management endpoints belong
-to Phase 1 and are intentionally not implemented yet.
+Phase 1 exposes system status and source management endpoints only.
+
+## Sources
+
+### `GET /sources`
+
+Lists sources ordered by name.
+
+Optional query parameters:
+
+- `is_enabled`: `true` or `false`
+- `source_type`: `rss`, `web`, `api` or `other`
+
+### `POST /sources`
+
+Creates a source.
+
+Request:
+
+```json
+{
+  "name": "CISA Advisories",
+  "url": "https://www.cisa.gov/news-events/cybersecurity-advisories",
+  "source_type": "rss",
+  "description": "Authoritative advisories source",
+  "weight": "2.50",
+  "is_enabled": true
+}
+```
+
+Returns `201 Created`.
+
+Duplicate URLs return `409 Conflict`.
+
+### `GET /sources/{source_id}`
+
+Returns one source by UUID.
+
+Missing sources return `404 Not Found`.
+
+### `PATCH /sources/{source_id}`
+
+Updates a source. All fields are optional.
+
+Request:
+
+```json
+{
+  "is_enabled": false,
+  "weight": "3.00"
+}
+```
+
+Duplicate URLs return `409 Conflict`.
+
+### `DELETE /sources/{source_id}`
+
+Deletes a source and returns `204 No Content`.
+
+Deleting a source cascades to related items through the database relationship.

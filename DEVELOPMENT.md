@@ -85,6 +85,6 @@ docker compose run --rm backend alembic upgrade head
 
 ## Phase Discipline
 
-CyberSec is built phase by phase. Phase 0 is complete only as a foundation.
-Phase 1 must focus on source management and must not introduce collectors,
+CyberSec is built phase by phase. Phase 1 is complete only as source
+management. Phase 2 must focus on intelligence collection and must not introduce
 AI, RAG, reports or alerts unless explicitly requested later.

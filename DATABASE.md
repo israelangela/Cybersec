@@ -94,3 +94,11 @@ Future phases may add:
 - `scheduled_reports`
 - `alerts`
 - `model_usage`
+
+## Phase 1 Notes
+
+Phase 1 uses the existing `sources` table. No new migration is required.
+
+The application now manages source metadata but does not collect source content.
+Fields such as `last_fetched_at`, `last_error` and `error_count` are reserved
+for Phase 2 collection jobs.
