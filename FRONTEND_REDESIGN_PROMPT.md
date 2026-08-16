@@ -36,6 +36,18 @@ The first screen must be operational. Do not build a marketing landing page.
 - Clicking an IOC, MITRE technique or threat actor opens its entity context.
 - Each detail view must retain enough context for the analyst to move back.
 
+## Pipeline Controls
+
+The redesigned shell must keep operational actions visible without returning to
+a long all-in-one page:
+
+- Collect RSS
+- Normalize
+- Enrich Batch
+- Sync Intel
+- Sync Stories
+- Enrich or refresh one selected news item from the News Feed detail panel
+
 ## War Room
 
 The War Room is the command view. It must show:

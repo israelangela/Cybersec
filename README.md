@@ -48,6 +48,7 @@ Included so far:
 - Story synchronization endpoints and workbench panel
 - Cyber War Room operational snapshot API
 - War Room UI with operating mode, risk queue, entity pulse, timeline and source health
+- Pipeline controls for RSS collection, normalization, AI enrichment, entity sync and story sync
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 

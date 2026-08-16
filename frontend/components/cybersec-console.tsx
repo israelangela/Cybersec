@@ -4,16 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Database,
+  DownloadCloud,
   ExternalLink,
   Eye,
   Fingerprint,
   GitBranch,
+  Layers3,
   Link2,
   Newspaper,
   RadioTower,
   RefreshCw,
   Search,
   ShieldCheck,
+  Sparkles,
   Waypoints
 } from "lucide-react";
 
@@ -125,6 +128,8 @@ type Selection = {
   entity: { entity_type: string; value: string } | null;
 };
 
+type PipelineResult = Record<string, unknown>;
+
 const navigation = [
   { id: "war-room" as const, label: "War Room", icon: Waypoints },
   { id: "stories" as const, label: "Stories", icon: GitBranch },
@@ -228,6 +233,101 @@ function EntityPill({
         </a>
       ) : null}
     </span>
+  );
+}
+
+function summarizePipelineResult(result: PipelineResult) {
+  return Object.entries(result)
+    .filter(([, value]) => typeof value === "string" || typeof value === "number")
+    .slice(0, 5)
+    .map(([key, value]) => `${key} ${value}`)
+    .join(" / ");
+}
+
+function PipelineControls() {
+  const [runningAction, setRunningAction] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const actions = [
+    {
+      id: "collect",
+      label: "Collect RSS",
+      icon: DownloadCloud,
+      path: "/collection/run"
+    },
+    {
+      id: "normalize",
+      label: "Normalize",
+      icon: Layers3,
+      path: "/normalization/run?limit=500"
+    },
+    {
+      id: "enrich",
+      label: "Enrich Batch",
+      icon: Sparkles,
+      path: "/enrichment/run?limit=10"
+    },
+    {
+      id: "sync-intel",
+      label: "Sync Intel",
+      icon: Fingerprint,
+      path: "/intelligence/sync?limit=500"
+    },
+    {
+      id: "sync-stories",
+      label: "Sync Stories",
+      icon: GitBranch,
+      path: "/stories/sync?limit=500"
+    }
+  ];
+
+  async function runPipelineAction(action: (typeof actions)[number]) {
+    setRunningAction(action.id);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const result = await apiRequest<PipelineResult>(action.path, { method: "POST" });
+      setMessage(`${action.label}: ${summarizePipelineResult(result)}`);
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : `Unable to run ${action.label}`);
+    } finally {
+      setRunningAction(null);
+    }
+  }
+
+  return (
+    <section className="mb-5 border border-white/10 bg-white/[0.035] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase text-signal">Pipeline</p>
+          <p className="mt-1 text-sm text-slate-400">Collect, normalize, enrich and rebuild context</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {actions.map((action) => {
+            const ActionIcon = action.icon;
+            const isRunning = runningAction === action.id;
+
+            return (
+              <button
+                key={action.id}
+                type="button"
+                onClick={() => void runPipelineAction(action)}
+                disabled={runningAction !== null}
+                className="inline-flex h-10 items-center gap-2 border border-white/10 px-3 text-sm font-semibold text-slate-200 transition hover:border-signal/50 hover:text-signal disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ActionIcon className={isRunning ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
+                {isRunning ? "Running" : action.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {message ? <p className="mt-3 text-sm text-signal">{message}</p> : null}
+      {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+    </section>
   );
 }
 
@@ -369,6 +469,8 @@ export function CybersecConsole({ status }: CybersecConsoleProps) {
               ))}
             </div>
           </header>
+
+          <PipelineControls />
 
           {activeView === "war-room" ? (
             <WarRoom
@@ -1131,20 +1233,31 @@ function NewsFeedView({
         </div>
       </div>
 
-      <NewsDetailPanel context={context} onOpenStory={onOpenStory} onOpenEntity={onOpenEntity} />
+      <NewsDetailPanel
+        context={context}
+        onContextUpdated={setContext}
+        onOpenStory={onOpenStory}
+        onOpenEntity={onOpenEntity}
+      />
     </section>
   );
 }
 
 function NewsDetailPanel({
   context,
+  onContextUpdated,
   onOpenStory,
   onOpenEntity
 }: {
   context: ItemContext | null;
+  onContextUpdated: (context: ItemContext) => void;
   onOpenStory: (storyId: string) => void;
   onOpenEntity: (entityType: string, value: string) => void;
 }) {
+  const [enriching, setEnriching] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   if (!context) {
     return (
       <aside className="border border-white/10 bg-white/[0.035] p-5 text-sm text-slate-400">
@@ -1154,6 +1267,32 @@ function NewsDetailPanel({
   }
 
   const item = context.item;
+
+  async function enrichItem() {
+    setEnriching(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const result = await apiRequest<{ status: string; error: string | null }>(
+        `/enrichment/items/${item.id}/run`,
+        { method: "POST" }
+      );
+
+      if (result.status === "error") {
+        setError(result.error ?? "Unable to enrich item");
+        return;
+      }
+
+      const updatedContext = await apiRequest<ItemContext>(`/items/${item.id}/context`);
+      onContextUpdated(updatedContext);
+      setMessage(result.status === "completed" ? "AI enrichment completed" : result.status);
+    } catch (enrichmentError) {
+      setError(enrichmentError instanceof Error ? enrichmentError.message : "Unable to enrich item");
+    } finally {
+      setEnriching(false);
+    }
+  }
 
   return (
     <aside className="grid gap-5 border border-white/10 bg-white/[0.045] p-5">
@@ -1173,6 +1312,20 @@ function NewsDetailPanel({
         >
           <ExternalLink className="h-4 w-4" aria-hidden="true" />
         </a>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => void enrichItem()}
+          disabled={enriching || item.status !== "normalized" || item.is_duplicate}
+          className="inline-flex h-10 items-center gap-2 border border-signal/40 bg-signal/10 px-3 text-sm font-semibold text-signal transition hover:bg-signal hover:text-obsidian disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Sparkles className={enriching ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
+          {enriching ? "Enriching" : item.ai_summary ? "Refresh AI Enrichment" : "Enrich Item"}
+        </button>
+        {message ? <span className="self-center text-sm text-signal">{message}</span> : null}
+        {error ? <span className="self-center text-sm text-red-300">{error}</span> : null}
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm">
