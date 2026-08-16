@@ -89,19 +89,22 @@ Columns:
 - `items.source_id` references `sources.id` with cascade delete.
 - `items.duplicate_of_item_id` references `items.id` with set null on delete.
 - `items.source_id` and `items.external_id` are unique as a pair.
+- `alerts.watchlist_id` references `watchlists.id` with cascade delete.
+- `alerts.item_id` references `items.id` with cascade delete.
+- `alerts.story_id` references `stories.id` with set null on delete.
+- `alerts.watchlist_id`, `entity_type`, `entity_value`, `item_id` and
+  `story_id` are unique as a group.
 
 ## Future Tables
 
 Future phases may add:
 
 - `departments`
-- `watchlists`
 - `topics`
 - `ask_conversations`
 - `ask_messages`
 - `audit_logs`
 - `scheduled_reports`
-- `alerts`
 - `model_usage`
 
 ## Phase 1 Notes
@@ -356,3 +359,63 @@ Constraints:
 - `item_id` references `items.id` with cascade delete.
 - `report_id` and `item_id` are the composite primary key.
 - `item_id` is indexed.
+
+## Phase 11 Notes
+
+Phase 11 adds migration `0007_alerts_watchlists`.
+
+### `watchlists`
+
+Stores analyst-defined matching rules for internal alert creation.
+
+Columns:
+
+- `id`
+- `name`
+- `description`
+- `entity_type`
+- `value_pattern`
+- `severity`
+- `min_risk_score`
+- `is_enabled`
+- `created_at`
+- `updated_at`
+
+Constraints:
+
+- `entity_type` and `severity` are indexed.
+
+### `alerts`
+
+Stores internal alerts created from watchlist matches against synchronized cyber
+entities.
+
+Columns:
+
+- `id`
+- `watchlist_id`
+- `item_id`
+- `story_id`
+- `title`
+- `description`
+- `status`
+- `severity`
+- `risk_score`
+- `entity_type`
+- `entity_value`
+- `evidence`
+- `matched_at`
+- `acknowledged_at`
+- `resolved_at`
+- `created_at`
+- `updated_at`
+
+Constraints:
+
+- `watchlist_id` references `watchlists.id` with cascade delete.
+- `item_id` references `items.id` with cascade delete.
+- `story_id` references `stories.id` with set null on delete.
+- `watchlist_id`, `entity_type`, `entity_value`, `item_id` and `story_id` are
+  unique as a group.
+- `watchlist_id`, `item_id`, `story_id`, `status`, `severity`, `risk_score` and
+  `entity_type` are indexed.

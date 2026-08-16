@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from cybersec_api.api.alerts import router as alerts_router
 from cybersec_api.api.ask import router as ask_router
 from cybersec_api.api.collection import router as collection_router
 from cybersec_api.api.enrichment import router as enrichment_router
@@ -14,6 +15,7 @@ from cybersec_api.api.war_room import router as war_room_router
 
 router = APIRouter()
 router.include_router(system_router)
+router.include_router(alerts_router)
 router.include_router(ask_router)
 router.include_router(sources_router)
 router.include_router(items_router)

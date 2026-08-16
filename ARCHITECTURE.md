@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 10 - Reports.
+Phase 11 - Automation / alerts / watchlists.
 
 ## Monorepo layout
 
@@ -20,6 +20,7 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.main`: app factory and middleware setup
 - `cybersec_api.api.routes`: API router composition
 - `cybersec_api.api.system`: health and readiness routes
+- `cybersec_api.api.alerts`: watchlist CRUD, alert synchronization and triage
 - `cybersec_api.api.sources`: source management routes
 - `cybersec_api.api.ask`: Ask CyberSec cited question answering route
 - `cybersec_api.api.stories`: story clustering and story analytics routes
@@ -31,6 +32,7 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.reports`: report generation, listing and Markdown export
 - `cybersec_api.collectors`: RSS collection and scheduler logic
 - `cybersec_api.ask`: local retrieval and OpenRouter-backed answer generation
+- `cybersec_api.alerts`: deterministic watchlist matching and alert creation
 - `cybersec_api.enrichment`: OpenRouter client and enrichment orchestration
 - `cybersec_api.intelligence`: derived entity extraction and risk scoring
 - `cybersec_api.normalizers`: text extraction, language detection and duplicate marking
@@ -63,9 +65,11 @@ Current derived intelligence tables:
 - `reports`
 - `report_stories`
 - `report_items`
+- `watchlists`
+- `alerts`
 
-Future phases may add reports, departments, watchlists, audit logs, alerts and
-model usage.
+Future phases may add departments, audit logs, scheduled reports, model usage
+and enterprise governance tables.
 
 ## Source Management
 
@@ -122,6 +126,7 @@ instead of one long scrolling page. Analysts move between dedicated workspaces:
 - War Room for operational triage
 - Ask for cited RAG questions over current intelligence
 - Reports for persistent analyst briefings and Markdown export
+- Alerts for watchlist-driven triage and investigation pivots
 - Stories for threat narratives and exact source articles
 - Entities for CVEs, IOCs, MITRE techniques, tags and threat actors
 - News Feed for collected source material and item-level evidence
@@ -264,6 +269,25 @@ by severity and risk. The generated artifact includes:
 Reports are drafts, not approved publications. Future phases may add analyst
 approval, scheduled reports, PDF export, recipients and audit trails.
 
+## Alerts And Watchlists
+
+Phase 11 adds internal alerting over the existing cyber intelligence graph. A
+watchlist defines matching criteria for entity type, value pattern, severity and
+minimum risk score. Alert sync scans derived cyber entities, links matches to
+the exact source item and first related story, then stores one deduplicated
+alert per watchlist/entity/item/story signal.
+
+Alerting remains analyst-directed:
+
+- `POST /alerts/sync` creates internal alerts from existing derived entities.
+- `GET /alerts` lists alerts by status, severity or watchlist.
+- `PATCH /alerts/{alert_id}/status` supports manual triage states.
+- Alerts link back to the exact news item, story cluster and entity context.
+
+Phase 11 does not send email, webhooks or automated response actions. Those
+require authentication, authorization, audit logging and delivery controls in a
+later phase.
+
 ## Contextual Navigation
 
 The contextual navigation layer is read-only and built over existing derived
@@ -301,11 +325,11 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 10 treats War Room, Ask and Reports data as untrusted analytical metadata
-aggregated from feeds, AI responses, extracted entities and story summaries. The
-UI renders those values as text and never executes or injects external HTML. The
-`users` table exists so authentication and RBAC can be added later without
-reshaping the foundation.
+Phase 11 treats War Room, Ask, Reports and Alerts data as untrusted analytical
+metadata aggregated from feeds, AI responses, extracted entities and story
+summaries. The UI renders those values as text and never executes or injects
+external HTML. The `users` table exists so authentication and RBAC can be added
+later without reshaping the foundation.
 
 ## Future direction
 

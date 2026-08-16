@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  Bell,
   Bot,
+  CheckCircle2,
   Database,
   DownloadCloud,
   ExternalLink,
@@ -14,6 +16,8 @@ import {
   Layers3,
   Link2,
   Newspaper,
+  Power,
+  PowerOff,
   RadioTower,
   RefreshCw,
   Search,
@@ -31,6 +35,7 @@ type ConsoleView =
   | "war-room"
   | "ask"
   | "reports"
+  | "alerts"
   | "stories"
   | "entities"
   | "news"
@@ -188,6 +193,46 @@ type ReportDetail = Report & {
   }>;
 };
 
+type Watchlist = {
+  id: string;
+  name: string;
+  description: string | null;
+  entity_type: string | null;
+  value_pattern: string | null;
+  severity: string | null;
+  min_risk_score: number;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type Alert = {
+  id: string;
+  watchlist_id: string;
+  item_id: string;
+  story_id: string | null;
+  title: string;
+  description: string | null;
+  status: string;
+  severity: string | null;
+  risk_score: number;
+  entity_type: string;
+  entity_value: string;
+  evidence: Record<string, unknown>;
+  matched_at: string;
+  acknowledged_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type AlertSyncResult = {
+  status: string;
+  watchlists_checked: number;
+  alerts_created: number;
+  skipped: number;
+};
+
 type Selection = {
   storyId: string | null;
   itemId: string | null;
@@ -200,6 +245,7 @@ const navigation = [
   { id: "war-room" as const, label: "War Room", icon: Waypoints },
   { id: "ask" as const, label: "Ask", icon: Bot },
   { id: "reports" as const, label: "Reports", icon: FileText },
+  { id: "alerts" as const, label: "Alerts", icon: Bell },
   { id: "stories" as const, label: "Stories", icon: GitBranch },
   { id: "entities" as const, label: "Entities", icon: Fingerprint },
   { id: "news" as const, label: "News Feed", icon: Newspaper },
@@ -222,7 +268,12 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(body.detail ?? "Request failed");
   }
 
-  return response.json() as Promise<T>;
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const body = await response.text();
+  return (body ? JSON.parse(body) : undefined) as T;
 }
 
 function formatDate(value: string | null) {
@@ -969,6 +1020,553 @@ function ReportDetailPanel({
   );
 }
 
+function alertStatusTone(status: string) {
+  if (status === "open") {
+    return "border-red-400/40 bg-red-500/10 text-red-200";
+  }
+
+  if (status === "acknowledged") {
+    return "border-amber-300/40 bg-amber-400/10 text-amber-100";
+  }
+
+  if (status === "resolved") {
+    return "border-signal/40 bg-signal/10 text-signal";
+  }
+
+  return "border-white/10 bg-white/[0.04] text-slate-300";
+}
+
+function AlertsView({
+  onOpenStory,
+  onOpenItem,
+  onOpenEntity
+}: {
+  onOpenStory: (storyId: string) => void;
+  onOpenItem: (itemId: string) => void;
+  onOpenEntity: (entityType: string, value: string) => void;
+}) {
+  const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [entityType, setEntityType] = useState("all");
+  const [valuePattern, setValuePattern] = useState("");
+  const [severity, setSeverity] = useState("all");
+  const [minRiskScore, setMinRiskScore] = useState("70");
+  const [isEnabled, setIsEnabled] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("open");
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const selectedAlert = alerts.find((alert) => alert.id === selectedAlertId) ?? alerts[0] ?? null;
+  const selectedWatchlist = selectedAlert
+    ? watchlists.find((watchlist) => watchlist.id === selectedAlert.watchlist_id)
+    : null;
+
+  async function loadWatchlists() {
+    const data = await apiRequest<Watchlist[]>("/watchlists?limit=100");
+    setWatchlists(data);
+  }
+
+  async function loadAlerts(nextStatus = statusFilter) {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams({ limit: "100" });
+
+      if (nextStatus !== "all") {
+        params.set("status", nextStatus);
+      }
+
+      const data = await apiRequest<Alert[]>(`/alerts?${params.toString()}`);
+      setAlerts(data);
+      setSelectedAlertId((current) => current ?? data[0]?.id ?? null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load alerts");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function refreshAll(nextStatus = statusFilter) {
+    await Promise.all([loadWatchlists(), loadAlerts(nextStatus)]);
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void refreshAll();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadAlerts(statusFilter);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
+
+  async function createWatchlist() {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      setError("Watchlist name is required");
+      return;
+    }
+
+    setCreating(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      await apiRequest<Watchlist>("/watchlists", {
+        method: "POST",
+        body: JSON.stringify({
+          name: trimmedName,
+          entity_type: entityType === "all" ? null : entityType,
+          value_pattern: valuePattern.trim() || null,
+          severity: severity === "all" ? null : severity,
+          min_risk_score: Number(minRiskScore) || 1,
+          is_enabled: isEnabled
+        })
+      });
+      setName("");
+      setValuePattern("");
+      setMessage("Watchlist created");
+      await refreshAll();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Unable to create watchlist");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function syncAlerts() {
+    setSyncing(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const result = await apiRequest<AlertSyncResult>("/alerts/sync?limit=500", { method: "POST" });
+      setMessage(
+        `Alerts sync: ${result.alerts_created} created / ${result.watchlists_checked} watchlists`
+      );
+      await refreshAll();
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : "Unable to sync alerts");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function updateAlertStatus(alertId: string, nextStatus: string) {
+    setMessage(null);
+    setError(null);
+
+    try {
+      const updated = await apiRequest<Alert>(`/alerts/${alertId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: nextStatus })
+      });
+      setAlerts((current) =>
+        current
+          .map((alert) => (alert.id === alertId ? updated : alert))
+          .filter((alert) => statusFilter === "all" || alert.status === statusFilter)
+      );
+      setSelectedAlertId(updated.id);
+      setMessage(`Alert marked as ${nextStatus}`);
+    } catch (statusError) {
+      setError(statusError instanceof Error ? statusError.message : "Unable to update alert");
+    }
+  }
+
+  async function deleteWatchlist(watchlistId: string) {
+    setMessage(null);
+    setError(null);
+
+    try {
+      await apiRequest<void>(`/watchlists/${watchlistId}`, { method: "DELETE" });
+      setMessage("Watchlist deleted");
+      await refreshAll();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete watchlist");
+    }
+  }
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[430px_minmax(0,1fr)]">
+      <div className="grid gap-5">
+        <section className="border border-white/10 bg-white/[0.04] p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-signal/40 bg-signal/10 text-signal">
+              <Bell className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase text-signal">Watchlists</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">Detection Rules</h2>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none transition focus:border-signal/60"
+              placeholder="Watchlist name"
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <select
+                value={entityType}
+                onChange={(event) => setEntityType(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none"
+              >
+                {entityTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={severity}
+                onChange={(event) => setSeverity(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none"
+              >
+                {["all", "critical", "high", "medium", "low", "unknown"].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
+              <input
+                value={valuePattern}
+                onChange={(event) => setValuePattern(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none transition focus:border-signal/60"
+                placeholder="CVE, IOC, actor or tag"
+              />
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={minRiskScore}
+                onChange={(event) => setMinRiskScore(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none transition focus:border-signal/60"
+                placeholder="Risk"
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setIsEnabled((current) => !current)}
+                className="inline-flex h-10 items-center gap-2 border border-white/10 px-3 text-sm font-semibold text-slate-300 transition hover:border-signal/40 hover:text-signal"
+              >
+                {isEnabled ? (
+                  <Power className="h-4 w-4 text-signal" aria-hidden="true" />
+                ) : (
+                  <PowerOff className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                )}
+                {isEnabled ? "Enabled" : "Disabled"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void createWatchlist()}
+                disabled={creating}
+                className="inline-flex h-10 items-center gap-2 bg-signal px-4 text-sm font-semibold text-obsidian transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Bell className={creating ? "h-4 w-4 animate-pulse" : "h-4 w-4"} aria-hidden="true" />
+                {creating ? "Creating" : "Create"}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="border border-white/10 bg-white/[0.035]">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4">
+            <h3 className="text-lg font-semibold text-white">Rules</h3>
+            <button
+              type="button"
+              onClick={() => void refreshAll()}
+              className="inline-flex h-9 w-9 items-center justify-center border border-white/10 text-slate-300 transition hover:border-signal/40 hover:text-signal"
+              aria-label="Refresh watchlists"
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="max-h-[calc(100vh-560px)] overflow-auto divide-y divide-white/10">
+            {watchlists.map((watchlist) => (
+              <article key={watchlist.id} className="grid gap-2 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{watchlist.name}</p>
+                    <p className="mt-1 text-xs uppercase text-slate-500">
+                      {watchlist.entity_type ?? "all"} / {watchlist.severity ?? "all"} / risk{" "}
+                      {watchlist.min_risk_score}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void deleteWatchlist(watchlist.id)}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center border border-white/10 text-slate-300 transition hover:border-red-400/50 hover:text-red-300"
+                    aria-label={`Delete ${watchlist.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span
+                    className={
+                      watchlist.is_enabled
+                        ? "border border-signal/30 px-2 py-1 text-signal"
+                        : "border border-white/10 px-2 py-1 text-slate-500"
+                    }
+                  >
+                    {watchlist.is_enabled ? "enabled" : "disabled"}
+                  </span>
+                  {watchlist.value_pattern ? (
+                    <span className="border border-white/10 px-2 py-1 text-slate-300">
+                      {watchlist.value_pattern}
+                    </span>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+            {watchlists.length === 0 ? (
+              <p className="p-4 text-sm text-slate-400">No watchlists created yet</p>
+            ) : null}
+          </div>
+        </section>
+      </div>
+
+      <section className="grid gap-5">
+        <section className="border border-white/10 bg-white/[0.04] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase text-signal">Alerts</p>
+              <h2 className="mt-1 text-xl font-semibold text-white">Analyst Triage</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none"
+              >
+                {["open", "acknowledged", "resolved", "dismissed", "all"].map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => void syncAlerts()}
+                disabled={syncing}
+                className="inline-flex h-10 items-center gap-2 border border-signal/40 bg-signal/10 px-3 text-sm font-semibold text-signal transition hover:bg-signal hover:text-obsidian disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RefreshCw className={syncing ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
+                {syncing ? "Syncing" : "Sync Alerts"}
+              </button>
+            </div>
+          </div>
+          {message ? <p className="mt-3 text-sm text-signal">{message}</p> : null}
+          {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+        </section>
+
+        <section className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_440px]">
+          <div className="border border-white/10 bg-white/[0.035]">
+            <div className="max-h-[calc(100vh-320px)] overflow-auto divide-y divide-white/10">
+              {loading ? <p className="p-4 text-sm text-slate-400">Loading alerts</p> : null}
+              {alerts.map((alert) => (
+                <button
+                  key={alert.id}
+                  type="button"
+                  onClick={() => setSelectedAlertId(alert.id)}
+                  className={
+                    selectedAlert?.id === alert.id
+                      ? "grid w-full gap-3 bg-signal/10 p-4 text-left"
+                      : "grid w-full gap-3 p-4 text-left transition hover:bg-white/[0.04]"
+                  }
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-white">
+                        {alert.title}
+                      </span>
+                      <span className="mt-1 block text-xs uppercase text-slate-500">
+                        {alert.entity_type} / {alert.entity_value}
+                      </span>
+                    </span>
+                    <span className={`text-sm font-semibold ${riskTone(alert.risk_score)}`}>
+                      {alert.risk_score}
+                    </span>
+                  </div>
+                  <p className="line-clamp-2 text-sm leading-6 text-slate-400">
+                    {alert.description ?? "No alert description"}
+                  </p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className={`border px-2 py-1 ${alertStatusTone(alert.status)}`}>
+                      {alert.status}
+                    </span>
+                    <span className="border border-white/10 px-2 py-1 text-slate-300">
+                      {alert.severity ?? "unknown"}
+                    </span>
+                    <span className="border border-white/10 px-2 py-1 text-slate-500">
+                      {formatDate(alert.matched_at)}
+                    </span>
+                  </div>
+                </button>
+              ))}
+              {!loading && alerts.length === 0 ? (
+                <p className="p-4 text-sm text-slate-400">No alerts for this filter</p>
+              ) : null}
+            </div>
+          </div>
+
+          <AlertDetailPanel
+            alert={selectedAlert}
+            watchlist={selectedWatchlist ?? null}
+            onUpdateStatus={updateAlertStatus}
+            onOpenStory={onOpenStory}
+            onOpenItem={onOpenItem}
+            onOpenEntity={onOpenEntity}
+          />
+        </section>
+      </section>
+    </section>
+  );
+}
+
+function AlertDetailPanel({
+  alert,
+  watchlist,
+  onUpdateStatus,
+  onOpenStory,
+  onOpenItem,
+  onOpenEntity
+}: {
+  alert: Alert | null;
+  watchlist: Watchlist | null;
+  onUpdateStatus: (alertId: string, nextStatus: string) => Promise<void>;
+  onOpenStory: (storyId: string) => void;
+  onOpenItem: (itemId: string) => void;
+  onOpenEntity: (entityType: string, value: string) => void;
+}) {
+  if (!alert) {
+    return (
+      <aside className="border border-white/10 bg-white/[0.035] p-5 text-sm text-slate-400">
+        Select an alert
+      </aside>
+    );
+  }
+
+  const triageActions = [
+    { status: "acknowledged", icon: CheckCircle2 },
+    { status: "resolved", icon: ShieldCheck },
+    { status: "dismissed", icon: Trash2 }
+  ];
+
+  return (
+    <aside className="grid gap-5 border border-white/10 bg-white/[0.045] p-5">
+      <div className="grid gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase text-signal">Alert Detail</p>
+            <h2 className="mt-2 text-xl font-semibold leading-7 text-white">{alert.title}</h2>
+          </div>
+          <span className={`shrink-0 border px-2 py-1 text-xs ${alertStatusTone(alert.status)}`}>
+            {alert.status}
+          </span>
+        </div>
+        <p className="text-sm leading-6 text-slate-300">
+          {alert.description ?? "No alert description"}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        {[
+          ["Risk", alert.risk_score],
+          ["Severity", alert.severity ?? "unknown"],
+          ["Matched", formatDate(alert.matched_at)],
+          ["Rule", watchlist?.name ?? alert.watchlist_id]
+        ].map(([label, value]) => (
+          <div key={label} className="border border-white/10 bg-obsidian/50 p-3">
+            <p className="text-xs uppercase text-slate-500">{label}</p>
+            <p className="mt-2 truncate font-semibold text-white">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <section className="grid gap-2">
+        <h3 className="text-sm font-semibold text-white">Matched Entity</h3>
+        <div className="flex flex-wrap gap-2">
+          <EntityPill
+            entityType={alert.entity_type}
+            value={alert.entity_value}
+            onOpen={onOpenEntity}
+          />
+        </div>
+      </section>
+
+      <section className="grid gap-2">
+        <h3 className="text-sm font-semibold text-white">Context Links</h3>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onOpenItem(alert.item_id)}
+            className="inline-flex h-9 items-center gap-2 border border-white/10 px-3 text-sm text-slate-300 transition hover:border-signal/40 hover:text-signal"
+          >
+            <Newspaper className="h-4 w-4" aria-hidden="true" />
+            News
+          </button>
+          {alert.story_id ? (
+            <button
+              type="button"
+              onClick={() => onOpenStory(alert.story_id!)}
+              className="inline-flex h-9 items-center gap-2 border border-white/10 px-3 text-sm text-slate-300 transition hover:border-signal/40 hover:text-signal"
+            >
+              <GitBranch className="h-4 w-4" aria-hidden="true" />
+              Story
+            </button>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="grid gap-2">
+        <h3 className="text-sm font-semibold text-white">Triage</h3>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {triageActions.map(({ status, icon: StatusIcon }) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => void onUpdateStatus(alert.id, status)}
+              disabled={alert.status === status}
+              className="inline-flex h-10 items-center justify-center gap-2 border border-white/10 px-3 text-sm font-semibold text-slate-300 transition hover:border-signal/40 hover:text-signal disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <StatusIcon className="h-4 w-4" aria-hidden="true" />
+              {status}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-2">
+        <h3 className="text-sm font-semibold text-white">Evidence</h3>
+        <pre className="max-h-72 overflow-auto whitespace-pre-wrap border border-white/10 bg-obsidian p-4 text-xs leading-6 text-slate-300">
+          {JSON.stringify(alert.evidence, null, 2)}
+        </pre>
+      </section>
+    </aside>
+  );
+}
+
 type CybersecConsoleProps = {
   status: string;
 };
@@ -1141,6 +1739,14 @@ export function CybersecConsole({ status }: CybersecConsoleProps) {
 
           {activeView === "reports" ? (
             <ReportsView onOpenStory={openStory} onOpenItem={openItem} />
+          ) : null}
+
+          {activeView === "alerts" ? (
+            <AlertsView
+              onOpenStory={openStory}
+              onOpenItem={openItem}
+              onOpenEntity={openEntity}
+            />
           ) : null}
 
           {activeView === "stories" ? (

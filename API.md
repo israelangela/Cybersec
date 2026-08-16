@@ -46,11 +46,12 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 10 exposes system status, source management, RSS collection, item listing,
+Phase 11 exposes system status, source management, RSS collection, item listing,
 item statistics, item normalization, AI enrichment, cyber intelligence entity
 endpoints, story clustering endpoints, contextual navigation endpoints and the
 Cyber War Room snapshot. It also exposes Ask CyberSec for cited RAG answers over
-enriched intelligence and persistent report generation.
+enriched intelligence, persistent report generation and internal alerting from
+watchlist matches.
 
 ## Ask CyberSec
 
@@ -421,6 +422,111 @@ Returns the generated Markdown as `text/markdown`.
 ### `DELETE /reports/{report_id}`
 
 Deletes a report and its report-story/report-item links.
+
+## Watchlists And Alerts
+
+Watchlists define internal matching rules over synchronized cyber entities.
+Alerts are created from existing entity, item and story context; alert sync does
+not call the AI provider.
+
+### `POST /watchlists`
+
+Creates a watchlist.
+
+Request:
+
+```json
+{
+  "name": "Critical Edge CVEs",
+  "description": "High-risk edge exposure findings",
+  "entity_type": "cve",
+  "value_pattern": "CVE-2026",
+  "severity": "critical",
+  "min_risk_score": 80,
+  "is_enabled": true
+}
+```
+
+Fields:
+
+- `entity_type`: optional entity filter such as `cve`, `ioc`, `mitre_attack`,
+  `tag` or `threat_actor`
+- `value_pattern`: optional case-insensitive substring match over entity value
+- `severity`: optional severity filter
+- `min_risk_score`: minimum entity risk score from `1` to `100`
+- `is_enabled`: disabled watchlists are ignored by alert sync
+
+### `GET /watchlists`
+
+Lists watchlists ordered by creation date.
+
+Optional query parameters:
+
+- `is_enabled`
+- `limit`: from `1` to `500`
+- `offset`
+
+### `PATCH /watchlists/{watchlist_id}`
+
+Updates watchlist fields. All fields are optional.
+
+### `DELETE /watchlists/{watchlist_id}`
+
+Deletes a watchlist and cascades its alerts.
+
+### `POST /alerts/sync`
+
+Creates internal alerts for enabled watchlists that match existing cyber
+entities.
+
+Optional query parameters:
+
+- `limit`: number of entities to scan, from `1` to `500`
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "watchlists_checked": 3,
+  "alerts_created": 4,
+  "skipped": 25
+}
+```
+
+### `GET /alerts`
+
+Lists alerts ordered by risk and recency.
+
+Optional query parameters:
+
+- `status`: `open`, `acknowledged`, `resolved` or `dismissed`
+- `severity`
+- `watchlist_id`
+- `limit`: from `1` to `500`
+- `offset`
+
+Each alert includes the matched entity, source item id, optional story id,
+evidence metadata and triage timestamps.
+
+### `PATCH /alerts/{alert_id}/status`
+
+Updates manual triage status.
+
+Request:
+
+```json
+{
+  "status": "acknowledged"
+}
+```
+
+Allowed statuses:
+
+- `open`
+- `acknowledged`
+- `resolved`
+- `dismissed`
 
 ## Collection
 

@@ -17,4 +17,4 @@
 
 ## Current boundary
 
-Phase 10 is implemented. Phase 11 must not begin until explicitly requested.
+Phase 11 is implemented. Phase 12 must not begin until explicitly requested.
