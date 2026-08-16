@@ -85,10 +85,10 @@ docker compose run --rm backend alembic upgrade head
 
 ## Phase Discipline
 
-CyberSec is built phase by phase. Phase 6 is complete as a derived cyber
-intelligence layer over enriched items. Phase 7 must focus on stories,
-embeddings, pgvector and clustering, and must not introduce RAG, reports or
-alerts unless explicitly requested later.
+CyberSec is built phase by phase. Phase 7 is complete as a story clustering
+layer over enriched items and derived cyber entities. Phase 8 must focus on the
+Cyber War Room experience and must not introduce RAG, reports or alerts unless
+explicitly requested later.
 
 ## AI Enrichment
 
@@ -107,3 +107,27 @@ Invoke-RestMethod -Method Post "http://localhost:8000/intelligence/sync?limit=50
 
 Cyber intelligence sync is deterministic and does not call the AI provider. It
 rebuilds derived entities for completed enrichments inside the configured limit.
+
+## Story Clustering
+
+Run enrichment and cyber intelligence sync before synchronizing stories:
+
+```powershell
+docker compose run --rm backend alembic upgrade head
+Invoke-RestMethod -Method Post "http://localhost:8000/enrichment/run?limit=10"
+Invoke-RestMethod -Method Post "http://localhost:8000/intelligence/sync?limit=500"
+Invoke-RestMethod -Method Post "http://localhost:8000/stories/sync?limit=500"
+```
+
+Story sync is deterministic and does not call the AI provider. It generates
+local hashed embeddings, combines text similarity with shared cyber entities and
+rebuilds the current story clusters.
+
+The PostgreSQL service uses `pgvector/pgvector:pg18`. If an existing local
+database volume was created with the plain PostgreSQL image and PostgreSQL emits
+a collation mismatch warning after switching images, run:
+
+```powershell
+docker compose exec postgres psql -U cybersec -d cybersec -c "REINDEX DATABASE cybersec;"
+docker compose exec postgres psql -U cybersec -d cybersec -c "ALTER DATABASE cybersec REFRESH COLLATION VERSION;"
+```

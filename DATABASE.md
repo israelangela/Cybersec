@@ -8,10 +8,11 @@ Alembic.
 Current development image:
 
 ```text
-postgres:latest
+pgvector/pgvector:pg18
 ```
 
-The current verified runtime is PostgreSQL 18.6.
+The current verified runtime is PostgreSQL 18.6 with the `vector` extension
+available for local story embeddings.
 
 ## Phase 0 Tables
 
@@ -93,7 +94,6 @@ Columns:
 
 Future phases may add:
 
-- `stories`
 - `reports`
 - `departments`
 - `watchlists`
@@ -218,3 +218,56 @@ Entity types currently derived:
 - `mitre_attack`
 - `tag`
 - `threat_actor`
+
+## Phase 7 Notes
+
+Phase 7 adds migration `0005_stories`.
+
+The database image now uses `pgvector/pgvector:pg18` so the `vector` extension
+is available in development. The migration creates the extension if needed.
+
+### `stories`
+
+Stores deterministic story clusters derived from normalized, enriched items and
+synchronized cyber entities.
+
+Columns:
+
+- `id`
+- `title`
+- `summary`
+- `status`
+- `severity`
+- `risk_score`
+- `item_count`
+- `entity_count`
+- `keywords`
+- `entity_fingerprint`
+- `embedding`
+- `first_seen_at`
+- `last_seen_at`
+- `created_at`
+- `updated_at`
+
+Constraints:
+
+- `embedding` uses `vector(384)`.
+- `entity_fingerprint`, `risk_score` and `severity` are indexed.
+
+### `story_items`
+
+Stores the many-to-many relationship between stories and items.
+
+Columns:
+
+- `story_id`
+- `item_id`
+- `relevance_score`
+- `created_at`
+
+Constraints:
+
+- `story_id` references `stories.id` with cascade delete.
+- `item_id` references `items.id` with cascade delete.
+- `story_id` and `item_id` are the composite primary key.
+- `item_id` is indexed.

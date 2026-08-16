@@ -1,6 +1,6 @@
 # CyberSec API
 
-Phase 6 backend for CyberSec.
+Phase 7 backend for CyberSec.
 
 Current backend capabilities:
 
@@ -13,3 +13,5 @@ Current backend capabilities:
 - AI enrichment through OpenRouter-compatible chat completions
 - Cyber intelligence entity extraction and scoring
 - Intelligence sync, aggregate entity and per-item entity endpoints
+- Story clustering with local deterministic embeddings and pgvector storage
+- Story sync, story listing, story detail and story statistics endpoints
