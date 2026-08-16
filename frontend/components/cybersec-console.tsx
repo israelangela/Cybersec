@@ -5,8 +5,10 @@ import {
   Activity,
   Bell,
   Bot,
+  Building2,
   CheckCircle2,
   Database,
+  DollarSign,
   DownloadCloud,
   ExternalLink,
   Eye,
@@ -25,6 +27,7 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  Users,
   Waypoints
 } from "lucide-react";
 
@@ -36,6 +39,7 @@ type ConsoleView =
   | "ask"
   | "reports"
   | "alerts"
+  | "enterprise"
   | "stories"
   | "entities"
   | "news"
@@ -233,6 +237,95 @@ type AlertSyncResult = {
   skipped: number;
 };
 
+type Department = {
+  id: string;
+  name: string;
+  description: string | null;
+  owner_email: string | null;
+  risk_appetite: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type EnterpriseUser = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  is_active: boolean;
+  is_superuser: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type DepartmentMembership = {
+  id: string;
+  department_id: string;
+  user_id: string;
+  role: string;
+  permissions: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type EnterpriseRole = {
+  role: string;
+  permissions: string[];
+  description: string;
+};
+
+type AuditEvent = {
+  id: string;
+  actor_type: string;
+  actor_id: string | null;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  outcome: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+type ModelUsage = {
+  id: string;
+  provider: string;
+  model: string;
+  operation: string;
+  resource_type: string;
+  resource_id: string;
+  enrichment_id: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  estimated_cost_usd: string;
+  raw_usage: Record<string, unknown>;
+  created_at: string;
+};
+
+type EnterpriseOverview = {
+  departments: number;
+  active_departments: number;
+  users: number;
+  active_users: number;
+  memberships: number;
+  audit_events: number;
+  model_usage_records: number;
+  estimated_cost_usd: string;
+  open_alerts: number;
+  critical_open_alerts: number;
+  recent_audit_events: AuditEvent[];
+  recent_model_usage: ModelUsage[];
+};
+
+type ModelUsageSyncResult = {
+  status: string;
+  enrichments_checked: number;
+  usage_created: number;
+  skipped: number;
+};
+
 type Selection = {
   storyId: string | null;
   itemId: string | null;
@@ -246,6 +339,7 @@ const navigation = [
   { id: "ask" as const, label: "Ask", icon: Bot },
   { id: "reports" as const, label: "Reports", icon: FileText },
   { id: "alerts" as const, label: "Alerts", icon: Bell },
+  { id: "enterprise" as const, label: "Enterprise", icon: Building2 },
   { id: "stories" as const, label: "Stories", icon: GitBranch },
   { id: "entities" as const, label: "Entities", icon: Fingerprint },
   { id: "news" as const, label: "News Feed", icon: Newspaper },
@@ -1567,6 +1661,495 @@ function AlertDetailPanel({
   );
 }
 
+function EnterpriseView() {
+  const [overview, setOverview] = useState<EnterpriseOverview | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [users, setUsers] = useState<EnterpriseUser[]>([]);
+  const [memberships, setMemberships] = useState<DepartmentMembership[]>([]);
+  const [roles, setRoles] = useState<EnterpriseRole[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [modelUsage, setModelUsage] = useState<ModelUsage[]>([]);
+  const [departmentName, setDepartmentName] = useState("");
+  const [departmentOwner, setDepartmentOwner] = useState("");
+  const [riskAppetite, setRiskAppetite] = useState("medium");
+  const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
+  const [membershipDepartmentId, setMembershipDepartmentId] = useState("");
+  const [membershipUserId, setMembershipUserId] = useState("");
+  const [membershipRole, setMembershipRole] = useState("analyst");
+  const [loading, setLoading] = useState(true);
+  const [syncingUsage, setSyncingUsage] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function refreshEnterprise() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [
+        overviewData,
+        departmentData,
+        userData,
+        membershipData,
+        roleData,
+        auditData,
+        usageData
+      ] = await Promise.all([
+        apiRequest<EnterpriseOverview>("/enterprise/overview"),
+        apiRequest<Department[]>("/enterprise/departments?limit=100"),
+        apiRequest<EnterpriseUser[]>("/enterprise/users?limit=100"),
+        apiRequest<DepartmentMembership[]>("/enterprise/memberships?limit=100"),
+        apiRequest<EnterpriseRole[]>("/enterprise/roles"),
+        apiRequest<AuditEvent[]>("/enterprise/audit-events?limit=12"),
+        apiRequest<ModelUsage[]>("/enterprise/model-usage?limit=12")
+      ]);
+
+      setOverview(overviewData);
+      setDepartments(departmentData);
+      setUsers(userData);
+      setMemberships(membershipData);
+      setRoles(roleData);
+      setAuditEvents(auditData);
+      setModelUsage(usageData);
+      setMembershipDepartmentId((current) => current || departmentData[0]?.id || "");
+      setMembershipUserId((current) => current || userData[0]?.id || "");
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load enterprise data");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void refreshEnterprise();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  async function createDepartment() {
+    const trimmedName = departmentName.trim();
+
+    if (!trimmedName) {
+      setError("Department name is required");
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+
+    try {
+      await apiRequest<Department>("/enterprise/departments", {
+        method: "POST",
+        body: JSON.stringify({
+          name: trimmedName,
+          owner_email: departmentOwner.trim() || null,
+          risk_appetite: riskAppetite,
+          is_active: true
+        })
+      });
+      setDepartmentName("");
+      setDepartmentOwner("");
+      setMessage("Department created");
+      await refreshEnterprise();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Unable to create department");
+    }
+  }
+
+  async function createUser() {
+    const trimmedEmail = userEmail.trim();
+
+    if (!trimmedEmail) {
+      setError("User email is required");
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+
+    try {
+      await apiRequest<EnterpriseUser>("/enterprise/users", {
+        method: "POST",
+        body: JSON.stringify({
+          email: trimmedEmail,
+          full_name: userName.trim() || null,
+          is_active: true,
+          is_superuser: false
+        })
+      });
+      setUserEmail("");
+      setUserName("");
+      setMessage("Enterprise user created");
+      await refreshEnterprise();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Unable to create user");
+    }
+  }
+
+  async function createMembership() {
+    if (!membershipDepartmentId || !membershipUserId) {
+      setError("Select a department and user first");
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+
+    try {
+      await apiRequest<DepartmentMembership>(
+        `/enterprise/departments/${membershipDepartmentId}/memberships`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: membershipUserId,
+            role: membershipRole,
+            permissions: [],
+            is_active: true
+          })
+        }
+      );
+      setMessage("Membership created");
+      await refreshEnterprise();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Unable to create membership");
+    }
+  }
+
+  async function syncUsage() {
+    setSyncingUsage(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const result = await apiRequest<ModelUsageSyncResult>("/enterprise/model-usage/sync?limit=500", {
+        method: "POST"
+      });
+      setMessage(
+        `Model usage sync: ${result.usage_created} created / ${result.enrichments_checked} enrichments`
+      );
+      await refreshEnterprise();
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : "Unable to sync model usage");
+    } finally {
+      setSyncingUsage(false);
+    }
+  }
+
+  const roleMap = new Map(roles.map((role) => [role.role, role]));
+  const departmentMap = new Map(departments.map((department) => [department.id, department]));
+  const userMap = new Map(users.map((user) => [user.id, user]));
+
+  return (
+    <section className="grid gap-5">
+      <section className="border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-signal/40 bg-signal/10 text-signal">
+              <Building2 className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase text-signal">Enterprise</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">Governance Control Plane</h2>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void syncUsage()}
+              disabled={syncingUsage}
+              className="inline-flex h-10 items-center gap-2 border border-ice/30 bg-ice/10 px-3 text-sm font-semibold text-ice transition hover:border-ice disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <DollarSign className={syncingUsage ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
+              {syncingUsage ? "Syncing" : "Sync Usage"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void refreshEnterprise()}
+              className="inline-flex h-10 w-10 items-center justify-center border border-white/10 text-slate-300 transition hover:border-signal/40 hover:text-signal"
+              aria-label="Refresh enterprise"
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        {message ? <p className="mt-3 text-sm text-signal">{message}</p> : null}
+        {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {[
+          ["Departments", overview?.departments ?? 0],
+          ["Users", overview?.users ?? 0],
+          ["Memberships", overview?.memberships ?? 0],
+          ["Open Alerts", overview?.open_alerts ?? 0],
+          ["Model Usage", overview?.model_usage_records ?? 0]
+        ].map(([label, value]) => (
+          <div key={label} className="border border-white/10 bg-white/[0.035] p-4">
+            <p className="text-xs uppercase text-slate-500">{label}</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+        <div className="grid gap-5">
+          <section className="border border-white/10 bg-white/[0.04] p-5">
+            <div className="flex items-center gap-3">
+              <Building2 className="h-5 w-5 text-signal" aria-hidden="true" />
+              <h3 className="text-lg font-semibold text-white">Departments</h3>
+            </div>
+            <div className="mt-4 grid gap-3">
+              <input
+                value={departmentName}
+                onChange={(event) => setDepartmentName(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none transition focus:border-signal/60"
+                placeholder="Department name"
+              />
+              <input
+                value={departmentOwner}
+                onChange={(event) => setDepartmentOwner(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none transition focus:border-signal/60"
+                placeholder="Owner email"
+              />
+              <select
+                value={riskAppetite}
+                onChange={(event) => setRiskAppetite(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none"
+              >
+                {["low", "medium", "high"].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => void createDepartment()}
+                className="inline-flex h-10 items-center justify-center gap-2 bg-signal px-4 text-sm font-semibold text-obsidian transition hover:bg-emerald-300"
+              >
+                <Building2 className="h-4 w-4" aria-hidden="true" />
+                Create Department
+              </button>
+            </div>
+          </section>
+
+          <section className="border border-white/10 bg-white/[0.04] p-5">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-signal" aria-hidden="true" />
+              <h3 className="text-lg font-semibold text-white">Users And Roles</h3>
+            </div>
+            <div className="mt-4 grid gap-3">
+              <input
+                value={userEmail}
+                onChange={(event) => setUserEmail(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none transition focus:border-signal/60"
+                placeholder="user@example.com"
+              />
+              <input
+                value={userName}
+                onChange={(event) => setUserName(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none transition focus:border-signal/60"
+                placeholder="Full name"
+              />
+              <button
+                type="button"
+                onClick={() => void createUser()}
+                className="inline-flex h-10 items-center justify-center gap-2 border border-signal/40 bg-signal/10 px-4 text-sm font-semibold text-signal transition hover:bg-signal hover:text-obsidian"
+              >
+                <Users className="h-4 w-4" aria-hidden="true" />
+                Create User
+              </button>
+            </div>
+            <div className="mt-5 grid gap-3 border-t border-white/10 pt-4">
+              <select
+                value={membershipDepartmentId}
+                onChange={(event) => setMembershipDepartmentId(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none"
+              >
+                <option value="">Select department</option>
+                {departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={membershipUserId}
+                onChange={(event) => setMembershipUserId(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none"
+              >
+                <option value="">Select user</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.email}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={membershipRole}
+                onChange={(event) => setMembershipRole(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none"
+              >
+                {roles.map((role) => (
+                  <option key={role.role} value={role.role}>
+                    {role.role}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => void createMembership()}
+                className="inline-flex h-10 items-center justify-center gap-2 border border-ice/30 bg-ice/10 px-4 text-sm font-semibold text-ice transition hover:border-ice"
+              >
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                Assign Role
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <section className="grid gap-5">
+          <div className="grid gap-5 2xl:grid-cols-2">
+            <section className="border border-white/10 bg-white/[0.035]">
+              <div className="border-b border-white/10 p-4">
+                <h3 className="text-lg font-semibold text-white">Department Directory</h3>
+              </div>
+              <div className="max-h-80 overflow-auto divide-y divide-white/10">
+                {loading ? <p className="p-4 text-sm text-slate-400">Loading enterprise data</p> : null}
+                {departments.map((department) => (
+                  <article key={department.id} className="grid gap-2 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-white">{department.name}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {department.owner_email ?? "No owner"} / {department.risk_appetite}
+                        </p>
+                      </div>
+                      <span
+                        className={
+                          department.is_active
+                            ? "border border-signal/30 px-2 py-1 text-xs text-signal"
+                            : "border border-white/10 px-2 py-1 text-xs text-slate-500"
+                        }
+                      >
+                        {department.is_active ? "active" : "inactive"}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+                {!loading && departments.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-400">No departments yet</p>
+                ) : null}
+              </div>
+            </section>
+
+            <section className="border border-white/10 bg-white/[0.035]">
+              <div className="border-b border-white/10 p-4">
+                <h3 className="text-lg font-semibold text-white">Memberships</h3>
+              </div>
+              <div className="max-h-80 overflow-auto divide-y divide-white/10">
+                {memberships.map((membership) => {
+                  const department = departmentMap.get(membership.department_id);
+                  const user = userMap.get(membership.user_id);
+                  const role = roleMap.get(membership.role);
+
+                  return (
+                    <article key={membership.id} className="grid gap-2 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-white">
+                            {user?.email ?? membership.user_id}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {department?.name ?? membership.department_id} / {membership.role}
+                          </p>
+                        </div>
+                        <span className="border border-white/10 px-2 py-1 text-xs text-slate-300">
+                          {membership.permissions.length}
+                        </span>
+                      </div>
+                      <p className="line-clamp-2 text-xs leading-5 text-slate-500">
+                        {role?.description ?? "Custom role permissions"}
+                      </p>
+                    </article>
+                  );
+                })}
+                {memberships.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-400">No memberships assigned yet</p>
+                ) : null}
+              </div>
+            </section>
+          </div>
+
+          <div className="grid gap-5 2xl:grid-cols-2">
+            <section className="border border-white/10 bg-white/[0.035]">
+              <div className="border-b border-white/10 p-4">
+                <h3 className="text-lg font-semibold text-white">Audit Trail</h3>
+              </div>
+              <div className="max-h-96 overflow-auto divide-y divide-white/10">
+                {auditEvents.map((event) => (
+                  <article key={event.id} className="grid gap-2 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="min-w-0 truncate text-sm font-semibold text-white">
+                        {event.action}
+                      </p>
+                      <span className="border border-signal/30 px-2 py-1 text-xs text-signal">
+                        {event.outcome}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                      <span>{event.resource_type}</span>
+                      <span>{event.actor_type}</span>
+                      <span>{formatDate(event.created_at)}</span>
+                    </div>
+                  </article>
+                ))}
+                {auditEvents.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-400">No audit events yet</p>
+                ) : null}
+              </div>
+            </section>
+
+            <section className="border border-white/10 bg-white/[0.035]">
+              <div className="border-b border-white/10 p-4">
+                <h3 className="text-lg font-semibold text-white">Model Usage</h3>
+              </div>
+              <div className="max-h-96 overflow-auto divide-y divide-white/10">
+                {modelUsage.map((usage) => (
+                  <article key={usage.id} className="grid gap-2 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-white">{usage.model}</p>
+                        <p className="mt-1 text-xs uppercase text-slate-500">
+                          {usage.provider} / {usage.operation}
+                        </p>
+                      </div>
+                      <span className="border border-white/10 px-2 py-1 text-xs text-slate-300">
+                        ${usage.estimated_cost_usd}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                      <span>in {usage.input_tokens}</span>
+                      <span>out {usage.output_tokens}</span>
+                      <span>{formatDate(usage.created_at)}</span>
+                    </div>
+                  </article>
+                ))}
+                {modelUsage.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-400">No model usage records yet</p>
+                ) : null}
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </section>
+  );
+}
+
 type CybersecConsoleProps = {
   status: string;
 };
@@ -1748,6 +2331,8 @@ export function CybersecConsole({ status }: CybersecConsoleProps) {
               onOpenEntity={openEntity}
             />
           ) : null}
+
+          {activeView === "enterprise" ? <EnterpriseView /> : null}
 
           {activeView === "stories" ? (
             <StoriesView

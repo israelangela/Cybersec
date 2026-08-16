@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 11 - Automation / alerts / watchlists.
+Phase 12 - Enterprise / departments / RBAC / audit / costs / observability.
 
 ## Monorepo layout
 
@@ -21,6 +21,7 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.routes`: API router composition
 - `cybersec_api.api.system`: health and readiness routes
 - `cybersec_api.api.alerts`: watchlist CRUD, alert synchronization and triage
+- `cybersec_api.api.enterprise`: enterprise users, departments, roles, audit and usage
 - `cybersec_api.api.sources`: source management routes
 - `cybersec_api.api.ask`: Ask CyberSec cited question answering route
 - `cybersec_api.api.stories`: story clustering and story analytics routes
@@ -33,6 +34,7 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.collectors`: RSS collection and scheduler logic
 - `cybersec_api.ask`: local retrieval and OpenRouter-backed answer generation
 - `cybersec_api.alerts`: deterministic watchlist matching and alert creation
+- `cybersec_api.enterprise`: governance metadata, role permissions, audit and usage sync
 - `cybersec_api.enrichment`: OpenRouter client and enrichment orchestration
 - `cybersec_api.intelligence`: derived entity extraction and risk scoring
 - `cybersec_api.normalizers`: text extraction, language detection and duplicate marking
@@ -67,9 +69,13 @@ Current derived intelligence tables:
 - `report_items`
 - `watchlists`
 - `alerts`
+- `departments`
+- `department_memberships`
+- `audit_events`
+- `model_usage`
 
-Future phases may add departments, audit logs, scheduled reports, model usage
-and enterprise governance tables.
+Future phases may add scheduled reports, incidents, notification deliveries and
+production observability tables.
 
 ## Source Management
 
@@ -127,6 +133,7 @@ instead of one long scrolling page. Analysts move between dedicated workspaces:
 - Ask for cited RAG questions over current intelligence
 - Reports for persistent analyst briefings and Markdown export
 - Alerts for watchlist-driven triage and investigation pivots
+- Enterprise for departments, RBAC foundation, audit and model usage visibility
 - Stories for threat narratives and exact source articles
 - Entities for CVEs, IOCs, MITRE techniques, tags and threat actors
 - News Feed for collected source material and item-level evidence
@@ -288,6 +295,31 @@ Phase 11 does not send email, webhooks or automated response actions. Those
 require authentication, authorization, audit logging and delivery controls in a
 later phase.
 
+## Enterprise Governance
+
+Phase 12 adds a governance layer for organizations using CyberSec across teams.
+It introduces internal user provisioning, departments, memberships, built-in
+role permission sets, audit events and model usage records.
+
+The role model is explicit but not globally enforced yet:
+
+- `owner`
+- `security_lead`
+- `analyst`
+- `viewer`
+
+Department memberships store the selected role and resolved permissions so
+future authentication middleware can enforce access without reshaping the data.
+Enterprise users are identity records for assignment and governance; they are
+not a login flow in this phase.
+
+Audit events are created by enterprise mutations and can also be posted
+explicitly for internal system events. Model usage sync scans completed
+enrichment rows and stores usage/cost visibility without calling OpenRouter.
+
+The Enterprise frontend workspace gives security leads a compact operating view
+of departments, users, memberships, audit trail, model usage and alert posture.
+
 ## Contextual Navigation
 
 The contextual navigation layer is read-only and built over existing derived
@@ -325,11 +357,11 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 11 treats War Room, Ask, Reports and Alerts data as untrusted analytical
+Phase 12 treats War Room, Ask, Reports, Alerts and Enterprise data as untrusted analytical
 metadata aggregated from feeds, AI responses, extracted entities and story
 summaries. The UI renders those values as text and never executes or injects
-external HTML. The `users` table exists so authentication and RBAC can be added
-later without reshaping the foundation.
+external HTML. RBAC roles and memberships exist as a foundation, but endpoint
+authorization is not enforced until authentication middleware is added.
 
 ## Future direction
 

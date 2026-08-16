@@ -87,10 +87,10 @@ docker compose run --rm backend alembic upgrade head
 
 ## Phase Discipline
 
-CyberSec is built phase by phase. Phase 11 is complete as internal alerts and
-watchlists over derived cyber intelligence. Phase 12 must focus on enterprise
-controls, departments, RBAC, audit, costs and observability only when explicitly
-requested.
+CyberSec is built phase by phase. Phase 12 is complete as enterprise governance
+over departments, internal users, role memberships, audit events and model usage
+visibility. Phase 13 must focus on production, AWS, CI/CD, security and disaster
+recovery only when explicitly requested.
 
 ## AI Enrichment
 
@@ -208,3 +208,37 @@ Invoke-RestMethod "http://localhost:8000/alerts?status=open"
 Alert sync is deterministic and uses existing `cyber_entities`, `items` and
 `stories`. It does not call OpenRouter, send notifications or trigger response
 automation.
+
+## Enterprise Governance
+
+Apply migrations before using enterprise governance:
+
+```powershell
+docker compose run --rm backend alembic upgrade head
+```
+
+Create an internal user, a department and assign a role:
+
+```powershell
+$user = Invoke-RestMethod -Method Post "http://localhost:8000/enterprise/users" `
+  -ContentType "application/json" `
+  -Body '{"email":"analyst@example.com","full_name":"SOC Analyst"}'
+
+$dept = Invoke-RestMethod -Method Post "http://localhost:8000/enterprise/departments" `
+  -ContentType "application/json" `
+  -Body '{"name":"SOC","risk_appetite":"low","is_active":true}'
+
+Invoke-RestMethod -Method Post "http://localhost:8000/enterprise/departments/$($dept.id)/memberships" `
+  -ContentType "application/json" `
+  -Body (@{ user_id = $user.id; role = "analyst"; permissions = @(); is_active = $true } | ConvertTo-Json)
+```
+
+Sync model usage visibility from completed enrichments:
+
+```powershell
+Invoke-RestMethod -Method Post "http://localhost:8000/enterprise/model-usage/sync?limit=500"
+Invoke-RestMethod "http://localhost:8000/enterprise/overview"
+```
+
+Phase 12 role memberships are a foundation for RBAC. They do not enforce access
+until authentication middleware is implemented.

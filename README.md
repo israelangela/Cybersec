@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 11 - Automation / alerts / watchlists is implemented.
+Phase 12 - Enterprise / departments / RBAC / audit / costs / observability is implemented.
 
 Included so far:
 
@@ -57,13 +57,20 @@ Included so far:
 - Alert synchronization from derived cyber entities and linked source news
 - Alert triage statuses for open, acknowledged, resolved and dismissed alerts
 - Alerts workspace with direct pivots to exact news, related stories and entities
+- Enterprise department management
+- Internal enterprise user provisioning for role assignment
+- RBAC foundation with department memberships, roles and permission sets
+- Audit event storage and API
+- Model usage synchronization from AI enrichments
+- Enterprise overview for governance, alert posture and usage visibility
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
 Not included yet:
 
-- Authentication and RBAC
+- Authentication and enforced RBAC
 - External alert delivery, webhooks and response automation
+- Production observability stack and CI/CD
 
 ## Requirements
 
@@ -109,6 +116,11 @@ Open:
 - Watchlists API: `GET http://localhost:8000/watchlists`
 - Alerts API: `GET http://localhost:8000/alerts`
 - Alert sync: `POST http://localhost:8000/alerts/sync`
+- Enterprise overview: `GET http://localhost:8000/enterprise/overview`
+- Enterprise departments: `GET http://localhost:8000/enterprise/departments`
+- Enterprise users: `GET http://localhost:8000/enterprise/users`
+- Enterprise audit events: `GET http://localhost:8000/enterprise/audit-events`
+- Model usage sync: `POST http://localhost:8000/enterprise/model-usage/sync`
 
 ## Services
 
@@ -160,6 +172,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 12 - Enterprise / departments / RBAC / audit / costs / observability.
+Next recommended step: Phase 13 - Production / AWS / CI-CD / security / DR.
 
-Do not begin Phase 12 until explicitly requested.
+Do not begin Phase 13 until explicitly requested.

@@ -94,18 +94,24 @@ Columns:
 - `alerts.story_id` references `stories.id` with set null on delete.
 - `alerts.watchlist_id`, `entity_type`, `entity_value`, `item_id` and
   `story_id` are unique as a group.
+- `departments.name` is unique.
+- `department_memberships.department_id` references `departments.id` with
+  cascade delete.
+- `department_memberships.user_id` references `users.id` with cascade delete.
+- `department_memberships.department_id` and `user_id` are unique as a group.
+- `model_usage.enrichment_id` references `enrichments.id` with set null on
+  delete.
+- `model_usage.operation`, `resource_type` and `resource_id` are unique as a
+  group.
 
 ## Future Tables
 
 Future phases may add:
 
-- `departments`
 - `topics`
 - `ask_conversations`
 - `ask_messages`
-- `audit_logs`
 - `scheduled_reports`
-- `model_usage`
 
 ## Phase 1 Notes
 
@@ -419,3 +425,99 @@ Constraints:
   unique as a group.
 - `watchlist_id`, `item_id`, `story_id`, `status`, `severity`, `risk_score` and
   `entity_type` are indexed.
+
+## Phase 12 Notes
+
+Phase 12 adds migration `0008_enterprise_governance`.
+
+### `departments`
+
+Stores enterprise team or business-unit metadata.
+
+Columns:
+
+- `id`
+- `name`
+- `description`
+- `owner_email`
+- `risk_appetite`
+- `is_active`
+- `created_at`
+- `updated_at`
+
+Constraints:
+
+- `name` is unique and indexed.
+- `risk_appetite` is indexed.
+
+### `department_memberships`
+
+Stores role assignments between internal enterprise users and departments.
+
+Columns:
+
+- `id`
+- `department_id`
+- `user_id`
+- `role`
+- `permissions`
+- `is_active`
+- `created_at`
+- `updated_at`
+
+Constraints:
+
+- `department_id` references `departments.id` with cascade delete.
+- `user_id` references `users.id` with cascade delete.
+- `department_id` and `user_id` are unique as a group.
+- `department_id`, `user_id` and `role` are indexed.
+
+### `audit_events`
+
+Stores governance audit events for enterprise actions and future compliance
+review.
+
+Columns:
+
+- `id`
+- `actor_type`
+- `actor_id`
+- `action`
+- `resource_type`
+- `resource_id`
+- `outcome`
+- `ip_address`
+- `user_agent`
+- `metadata`
+- `created_at`
+
+Constraints:
+
+- `actor_type`, `action`, `resource_type`, `outcome` and `created_at` are
+  indexed.
+
+### `model_usage`
+
+Stores model usage records derived from completed AI enrichment rows.
+
+Columns:
+
+- `id`
+- `provider`
+- `model`
+- `operation`
+- `resource_type`
+- `resource_id`
+- `enrichment_id`
+- `input_tokens`
+- `output_tokens`
+- `estimated_cost_usd`
+- `raw_usage`
+- `created_at`
+
+Constraints:
+
+- `enrichment_id` references `enrichments.id` with set null on delete.
+- `operation`, `resource_type` and `resource_id` are unique as a group.
+- `provider`, `model`, `operation`, `resource_type`, `resource_id`,
+  `enrichment_id` and `created_at` are indexed.
