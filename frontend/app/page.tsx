@@ -1,5 +1,7 @@
-import { Activity, Database, Radar, ShieldCheck } from "lucide-react";
+import { Activity, Database, RadioTower, ShieldCheck } from "lucide-react";
 
+import { IntelligenceCollection } from "@/components/intelligence-collection";
+import { SourceManagement } from "@/components/source-management";
 import { getSystemStatus } from "@/lib/system-status";
 
 export default async function Home() {
@@ -7,7 +9,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen overflow-hidden px-6 py-8 sm:px-10 lg:px-16">
-      <section className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-7xl flex-col justify-between gap-12">
+      <section className="mx-auto grid w-full max-w-7xl gap-8">
         <header className="flex items-center justify-between border-b border-white/10 pb-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center border border-signal/40 bg-signal/10 text-signal shadow-glow">
@@ -23,12 +25,12 @@ export default async function Home() {
           </div>
         </header>
 
-        <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="max-w-3xl">
+        <div className="grid items-end gap-8 lg:grid-cols-[1fr_auto]">
+          <div className="max-w-4xl">
             <p className="mb-5 text-sm font-semibold uppercase tracking-[0.32em] text-signal">
-              Phase 0 Foundation
+              Phase 2 Intelligence Collection
             </p>
-            <h1 className="text-5xl font-semibold leading-tight text-white sm:text-6xl lg:text-7xl">
+            <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
               CyberSec
             </h1>
             <p className="mt-6 max-w-2xl text-xl leading-8 text-slate-300">
@@ -36,11 +38,11 @@ export default async function Home() {
             </p>
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid min-w-72 gap-3">
             {[
               { label: "API", value: "FastAPI", icon: Activity },
               { label: "Database", value: "PostgreSQL", icon: Database },
-              { label: "Intelligence Core", value: "Ready", icon: Radar }
+              { label: "RSS Collection", value: "Ready", icon: RadioTower }
             ].map((item) => (
               <div
                 key={item.label}
@@ -58,10 +60,13 @@ export default async function Home() {
           </div>
         </div>
 
+        <IntelligenceCollection />
+        <SourceManagement />
+
         <footer className="grid gap-3 border-t border-white/10 pt-5 text-sm text-slate-400 sm:grid-cols-3">
           <span>Health endpoint active</span>
           <span>Readiness backed by database</span>
-          <span>Initial schema: User, Source, Item</span>
+          <span>RSS collection enabled</span>
         </footer>
       </section>
     </main>

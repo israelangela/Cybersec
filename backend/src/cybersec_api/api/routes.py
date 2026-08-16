@@ -1,21 +1,12 @@
-from typing import Annotated
+from fastapi import APIRouter
 
-from fastapi import APIRouter, Depends
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from cybersec_api.db.session import get_session
+from cybersec_api.api.collection import router as collection_router
+from cybersec_api.api.items import router as items_router
+from cybersec_api.api.sources import router as sources_router
+from cybersec_api.api.system import router as system_router
 
 router = APIRouter()
-DatabaseSession = Annotated[AsyncSession, Depends(get_session)]
-
-
-@router.get("/health", tags=["system"])
-async def health() -> dict[str, str]:
-    return {"status": "ok", "service": "cybersec-api"}
-
-
-@router.get("/ready", tags=["system"])
-async def ready(session: DatabaseSession) -> dict[str, str]:
-    await session.execute(text("SELECT 1"))
-    return {"status": "ready", "database": "ok"}
+router.include_router(system_router)
+router.include_router(sources_router)
+router.include_router(items_router)
+router.include_router(collection_router)

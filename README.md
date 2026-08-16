@@ -6,9 +6,9 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 0 - Foundation is implemented.
+Phase 2 - Intelligence Collection is implemented.
 
-Included in this phase:
+Included so far:
 
 - PostgreSQL with Docker Compose
 - FastAPI backend
@@ -18,13 +18,17 @@ Included in this phase:
 - Structured logging
 - `GET /health`
 - `GET /ready`
+- Source management API
+- Source management UI
+- RSS intelligence collection
+- Manual collection endpoints
+- Basic scheduler configuration
+- Item listing API and UI
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
 Not included yet:
 
-- Source management UI or CRUD
-- RSS collection
 - Normalization
 - AI enrichment
 - RAG
@@ -54,6 +58,9 @@ Open:
 - API docs: `http://localhost:8000/docs`
 - Health: `http://localhost:8000/health`
 - Readiness: `http://localhost:8000/ready`
+- Sources API: `http://localhost:8000/sources`
+- Items API: `http://localhost:8000/items`
+- Collection run: `POST http://localhost:8000/collection/run`
 
 ## Services
 
@@ -100,6 +107,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 1 - Source Management.
+Next recommended step: Phase 3 - Normalization.
 
-Do not begin Phase 1 until explicitly requested.
+Do not begin Phase 3 until explicitly requested.
