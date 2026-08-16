@@ -2,10 +2,9 @@
 
 ## Current posture
 
-Phase 11 creates internal alerts from watchlist matches on top of story
-clusters, AI-enriched RSS collection and derived cyber intelligence entities.
-It does not implement authentication, RBAC, external delivery or automated
-response yet.
+Phase 12 creates an enterprise governance layer for departments, internal user
+identities, role memberships, audit events and model usage visibility. It does
+not implement login, enforced RBAC, external delivery or automated response yet.
 
 ## Security rules
 
@@ -22,7 +21,10 @@ response yet.
 
 ## Planned controls
 
-Future phases will add Argon2id password handling, secure cookies, HttpOnly, SameSite, CSRF protection, rate limiting, RBAC, audit logs, SSRF controls, malicious feed handling, prompt-injection defenses and authorized retrieval for RAG.
+Future phases will add Argon2id password handling, secure cookies, HttpOnly,
+SameSite, CSRF protection, rate limiting, enforced RBAC, stronger SSRF controls,
+malicious feed handling, prompt-injection defenses, authorized retrieval for RAG
+and production observability.
 
 ## Phase 0 Threat Notes
 
@@ -121,3 +123,14 @@ taking action. Phase 11 does not send emails, webhooks or automated response
 actions. Future phases must add authentication, RBAC, audit logs, suppression
 rules, notification controls and approval workflows before external delivery or
 response automation is enabled.
+
+## Phase 12 Threat Notes
+
+Enterprise users are internal governance identities, not authenticated login
+accounts. Department memberships and permissions are stored for future RBAC, but
+Phase 12 does not enforce endpoint authorization. Audit events and model usage
+records improve traceability but are not tamper-proof without authentication,
+append-only controls and administrator separation. Future production work must
+add authenticated actors, authorization middleware, immutable audit storage,
+rate limits, secrets scanning in CI and operational monitoring before this is
+used as a controlled enterprise system.

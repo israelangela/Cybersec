@@ -46,12 +46,13 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 11 exposes system status, source management, RSS collection, item listing,
+Phase 12 exposes system status, source management, RSS collection, item listing,
 item statistics, item normalization, AI enrichment, cyber intelligence entity
 endpoints, story clustering endpoints, contextual navigation endpoints and the
 Cyber War Room snapshot. It also exposes Ask CyberSec for cited RAG answers over
 enriched intelligence, persistent report generation and internal alerting from
-watchlist matches.
+watchlist matches. The enterprise API adds governance views for departments,
+internal users, role memberships, audit events and model usage visibility.
 
 ## Ask CyberSec
 
@@ -527,6 +528,164 @@ Allowed statuses:
 - `acknowledged`
 - `resolved`
 - `dismissed`
+
+## Enterprise Governance
+
+Enterprise endpoints provide governance metadata. Phase 12 does not implement
+login or enforce RBAC globally yet.
+
+### `GET /enterprise/overview`
+
+Returns governance counts, alert posture and recent audit/model usage records.
+
+### `GET /enterprise/roles`
+
+Lists built-in roles and permission sets:
+
+- `owner`
+- `security_lead`
+- `analyst`
+- `viewer`
+
+### `POST /enterprise/users`
+
+Creates an internal enterprise user identity for department membership and role
+assignment. This is not a login flow.
+
+Request:
+
+```json
+{
+  "email": "analyst@example.com",
+  "full_name": "SOC Analyst",
+  "is_active": true,
+  "is_superuser": false
+}
+```
+
+### `GET /enterprise/users`
+
+Lists internal enterprise users.
+
+Optional query parameters:
+
+- `is_active`
+- `limit`: from `1` to `500`
+- `offset`
+
+### `PATCH /enterprise/users/{user_id}`
+
+Updates an internal user identity.
+
+### `DELETE /enterprise/users/{user_id}`
+
+Deletes an internal user identity and cascades department memberships.
+
+### `POST /enterprise/departments`
+
+Creates a department.
+
+Request:
+
+```json
+{
+  "name": "SOC",
+  "description": "Security operations center",
+  "owner_email": "soc-lead@example.com",
+  "risk_appetite": "low",
+  "is_active": true
+}
+```
+
+### `GET /enterprise/departments`
+
+Lists departments.
+
+Optional query parameters:
+
+- `is_active`
+- `limit`: from `1` to `500`
+- `offset`
+
+### `PATCH /enterprise/departments/{department_id}`
+
+Updates department metadata.
+
+### `DELETE /enterprise/departments/{department_id}`
+
+Deletes a department and cascades its memberships.
+
+### `POST /enterprise/departments/{department_id}/memberships`
+
+Assigns a user to a department with a role. If `permissions` is empty, CyberSec
+fills permissions from the selected built-in role.
+
+Request:
+
+```json
+{
+  "user_id": "00000000-0000-0000-0000-000000000000",
+  "role": "analyst",
+  "permissions": [],
+  "is_active": true
+}
+```
+
+### `GET /enterprise/memberships`
+
+Lists department memberships.
+
+Optional query parameters:
+
+- `department_id`
+- `user_id`
+- `limit`: from `1` to `500`
+- `offset`
+
+### `PATCH /enterprise/memberships/{membership_id}`
+
+Updates a membership role, permissions or active state.
+
+### `DELETE /enterprise/memberships/{membership_id}`
+
+Deletes a membership.
+
+### `POST /enterprise/audit-events`
+
+Creates an audit event. Internal enterprise actions also create audit events.
+
+### `GET /enterprise/audit-events`
+
+Lists audit events ordered by creation time.
+
+Optional query parameters:
+
+- `action`
+- `resource_type`
+- `outcome`
+- `limit`: from `1` to `500`
+- `offset`
+
+### `POST /enterprise/model-usage/sync`
+
+Creates model usage records from completed enrichment rows. This does not call
+OpenRouter.
+
+Optional query parameters:
+
+- `limit`: number of enrichments to inspect, from `1` to `500`
+
+### `GET /enterprise/model-usage`
+
+Lists stored model usage records.
+
+Optional query parameters:
+
+- `provider`
+- `model`
+- `operation`
+- `limit`: from `1` to `500`
+- `offset`
 
 ## Collection
 
