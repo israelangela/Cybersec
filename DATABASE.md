@@ -133,3 +133,12 @@ Normalization preserves the original raw collection fields and adds normalized
 metadata on the same `items` row. Duplicates are marked with `status =
 duplicate`, `is_duplicate = true` and `duplicate_of_item_id` pointing to the
 first normalized item with the same normalized hash.
+
+## Phase 4 Notes
+
+Phase 4 does not require a database migration.
+
+The intelligence UI uses the existing `items` and `sources` tables. Backend
+queries filter by existing columns such as `source_id`, `status`, `language`,
+`is_duplicate`, `title`, `url`, `summary`, `raw_content`, `normalized_title` and
+`normalized_content`.

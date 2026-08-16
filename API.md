@@ -46,8 +46,8 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 3 exposes system status, source management, RSS collection, item listing
-and item normalization endpoints.
+Phase 4 exposes system status, source management, RSS collection, item listing,
+item statistics and item normalization endpoints.
 
 ## Sources
 
@@ -117,7 +117,32 @@ Lists recently collected items.
 Optional query parameters:
 
 - `source_id`: filter by source UUID
-- `limit`: number of items, from `1` to `200`
+- `status`: filter by item status
+- `language`: filter by normalized language code
+- `is_duplicate`: `true` or `false`
+- `search`: search over title, URL, summary and normalized content
+- `limit`: number of items, from `1` to `500`
+- `offset`: result offset for pagination
+
+Each item includes `source_name` when returned from list/detail endpoints.
+
+### `GET /items/stats`
+
+Returns item counts for the intelligence UI.
+
+Response:
+
+```json
+{
+  "total": 4493,
+  "raw": 0,
+  "normalized": 4491,
+  "duplicate": 2,
+  "normalization_error": 0,
+  "languages": [],
+  "sources": []
+}
+```
 
 ### `GET /items/{item_id}`
 

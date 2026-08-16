@@ -17,4 +17,4 @@
 
 ## Current boundary
 
-Phase 3 is implemented. Phase 4 must not begin until explicitly requested.
+Phase 4 is implemented. Phase 5 must not begin until explicitly requested.

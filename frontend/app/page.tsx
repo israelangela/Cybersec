@@ -1,6 +1,6 @@
-import { Activity, Database, Fingerprint, ShieldCheck } from "lucide-react";
+import { Activity, Database, Eye, ShieldCheck } from "lucide-react";
 
-import { IntelligenceCollection } from "@/components/intelligence-collection";
+import { IntelligenceWorkbench } from "@/components/intelligence-workbench";
 import { SourceManagement } from "@/components/source-management";
 import { getSystemStatus } from "@/lib/system-status";
 
@@ -28,7 +28,7 @@ export default async function Home() {
         <div className="grid items-end gap-8 lg:grid-cols-[1fr_auto]">
           <div className="max-w-4xl">
             <p className="mb-5 text-sm font-semibold uppercase tracking-[0.32em] text-signal">
-              Phase 3 Normalization
+              Phase 4 Intelligence UI
             </p>
             <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
               CyberSec
@@ -42,7 +42,7 @@ export default async function Home() {
             {[
               { label: "API", value: "FastAPI", icon: Activity },
               { label: "Database", value: "PostgreSQL", icon: Database },
-              { label: "Normalization", value: "Ready", icon: Fingerprint }
+              { label: "Intelligence UI", value: "Ready", icon: Eye }
             ].map((item) => (
               <div
                 key={item.label}
@@ -60,13 +60,13 @@ export default async function Home() {
           </div>
         </div>
 
-        <IntelligenceCollection />
+        <IntelligenceWorkbench />
         <SourceManagement />
 
         <footer className="grid gap-3 border-t border-white/10 pt-5 text-sm text-slate-400 sm:grid-cols-3">
           <span>Health endpoint active</span>
           <span>Readiness backed by database</span>
-          <span>Normalization enabled</span>
+          <span>Intelligence workbench enabled</span>
         </footer>
       </section>
     </main>

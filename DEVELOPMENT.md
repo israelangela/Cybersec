@@ -85,6 +85,6 @@ docker compose run --rm backend alembic upgrade head
 
 ## Phase Discipline
 
-CyberSec is built phase by phase. Phase 3 is complete only as normalization of
-collected intelligence. Phase 4 must focus on intelligence UI and must not
-introduce AI, RAG, reports or alerts unless explicitly requested later.
+CyberSec is built phase by phase. Phase 4 is complete only as an intelligence
+UI over collected and normalized items. Phase 5 must focus on AI enrichment and
+must not introduce RAG, reports or alerts unless explicitly requested later.

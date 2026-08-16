@@ -53,3 +53,8 @@ class Item(Base):
     )
 
     source: Mapped[Source] = relationship(back_populates="items")
+
+    @property
+    def source_name(self) -> str | None:
+        source = self.__dict__.get("source")
+        return source.name if source is not None else None

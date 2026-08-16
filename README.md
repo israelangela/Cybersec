@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 3 - Normalization is implemented.
+Phase 4 - Intelligence UI is implemented.
 
 Included so far:
 
@@ -30,6 +30,11 @@ Included so far:
 - Normalized SHA-256 hashing
 - Duplicate marking based on normalized content
 - Manual normalization endpoints and UI action
+- Intelligence workbench UI
+- Item search, source, status, language and duplicate filters
+- Intelligence summary metrics
+- Item detail panel with normalized content and source metadata
+- Item statistics API
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
@@ -67,6 +72,7 @@ Open:
 - Items API: `http://localhost:8000/items`
 - Collection run: `POST http://localhost:8000/collection/run`
 - Normalization run: `POST http://localhost:8000/normalization/run`
+- Item stats: `GET http://localhost:8000/items/stats`
 
 ## Services
 
@@ -113,6 +119,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 4 - Intelligence UI.
+Next recommended step: Phase 5 - AI Enrichment.
 
-Do not begin Phase 4 until explicitly requested.
+Do not begin Phase 5 until explicitly requested.

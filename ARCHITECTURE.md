@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 3 - Normalization.
+Phase 4 - Intelligence UI.
 
 ## Monorepo layout
 
@@ -94,8 +94,22 @@ Normalization writes these item fields:
 ## Frontend
 
 The frontend is a Next.js App Router application with TypeScript and Tailwind
-CSS. Phase 3 exposes source management, manual RSS collection, manual
-normalization and recent collected items with normalized metadata.
+CSS. Phase 4 exposes source management, manual RSS collection, manual
+normalization and an intelligence workbench with filters, summary metrics,
+source-aware item rows and a normalized-content detail panel.
+
+## Intelligence UI
+
+Phase 4 adds an analyst-facing workbench over normalized items. The UI supports:
+
+- Search over title, URL, summary, raw content and normalized content
+- Filtering by source, status, language and duplicate state
+- Summary metrics for total, raw, normalized, duplicate and error states
+- Language and top-source distribution summaries
+- Item detail review without rendering untrusted HTML
+
+The API remains server-filtered so the browser does not need to download the
+full item corpus.
 
 ## Runtime
 
@@ -120,7 +134,7 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 3 fetches RSS sources only and normalizes content into plain text before
+Phase 4 fetches RSS sources only and normalizes content into plain text before
 showing the normalized body in the UI. Source URLs and response bodies are
 untrusted input. The collector applies URL scheme validation, request timeouts,
 redirect limits and response-size limits. The `users` table exists so

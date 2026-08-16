@@ -4,8 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from cybersec_api.main import app
-from cybersec_api.normalizers.text import detect_language, normalized_hash, normalize_content
-
+from cybersec_api.normalizers.text import detect_language, normalize_content, normalized_hash
 
 DUPLICATE_RSS_FEED = b"""<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
