@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 10 - Reports is implemented.
+Phase 11 - Automation / alerts / watchlists is implemented.
 
 Included so far:
 
@@ -53,13 +53,17 @@ Included so far:
 - Cited answers with source news links, story links and entity pivots
 - Persistent report generation from stories, entities and cited source items
 - Markdown report export for analyst review and sharing
+- Watchlist CRUD for high-priority CVEs, IOCs, MITRE techniques, actors and tags
+- Alert synchronization from derived cyber entities and linked source news
+- Alert triage statuses for open, acknowledged, resolved and dismissed alerts
+- Alerts workspace with direct pivots to exact news, related stories and entities
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
 Not included yet:
 
-- Alerts
 - Authentication and RBAC
+- External alert delivery, webhooks and response automation
 
 ## Requirements
 
@@ -102,6 +106,9 @@ Open:
 - Ask CyberSec: `POST http://localhost:8000/ask`
 - Reports API: `GET http://localhost:8000/reports`
 - Generate report: `POST http://localhost:8000/reports/generate`
+- Watchlists API: `GET http://localhost:8000/watchlists`
+- Alerts API: `GET http://localhost:8000/alerts`
+- Alert sync: `POST http://localhost:8000/alerts/sync`
 
 ## Services
 
@@ -153,6 +160,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 11 - Automation / alerts / watchlists.
+Next recommended step: Phase 12 - Enterprise / departments / RBAC / audit / costs / observability.
 
-Do not begin Phase 11 until explicitly requested.
+Do not begin Phase 12 until explicitly requested.

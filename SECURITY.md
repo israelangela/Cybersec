@@ -2,9 +2,10 @@
 
 ## Current posture
 
-Phase 10 creates persistent draft reports on top of story clusters, AI-enriched
-RSS collection and derived cyber intelligence entities. It does not implement
-authentication, RBAC, alerts or external delivery yet.
+Phase 11 creates internal alerts from watchlist matches on top of story
+clusters, AI-enriched RSS collection and derived cyber intelligence entities.
+It does not implement authentication, RBAC, external delivery or automated
+response yet.
 
 ## Security rules
 
@@ -110,3 +111,13 @@ treated as drafts until reviewed by an analyst. Markdown is rendered as text in
 the current UI; future rich rendering must sanitize content. Reports do not
 implement approval workflows, recipients, file signing, redaction, access
 control or audit trails yet.
+
+## Phase 11 Threat Notes
+
+Alerts are derived from untrusted feed content, untrusted AI enrichment and
+derived cyber entities. They are triage prompts, not proof of compromise.
+Operators must review the linked source news, story and entity evidence before
+taking action. Phase 11 does not send emails, webhooks or automated response
+actions. Future phases must add authentication, RBAC, audit logs, suppression
+rules, notification controls and approval workflows before external delivery or
+response automation is enabled.

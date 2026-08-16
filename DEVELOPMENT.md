@@ -87,9 +87,10 @@ docker compose run --rm backend alembic upgrade head
 
 ## Phase Discipline
 
-CyberSec is built phase by phase. Phase 10 is complete as persistent report
-generation over stories, entities and cited source items. Phase 11 must focus on
-automation, alerts and watchlists only when explicitly requested.
+CyberSec is built phase by phase. Phase 11 is complete as internal alerts and
+watchlists over derived cyber intelligence. Phase 12 must focus on enterprise
+controls, departments, RBAC, audit, costs and observability only when explicitly
+requested.
 
 ## AI Enrichment
 
@@ -184,3 +185,26 @@ Invoke-RestMethod -Method Post "http://localhost:8000/reports/generate" `
 
 Reports are deterministic Markdown drafts. They do not call OpenRouter and do
 not send notifications.
+
+## Alerts And Watchlists
+
+Apply migrations before using alerting:
+
+```powershell
+docker compose run --rm backend alembic upgrade head
+```
+
+Create a watchlist and synchronize alerts:
+
+```powershell
+Invoke-RestMethod -Method Post "http://localhost:8000/watchlists" `
+  -ContentType "application/json" `
+  -Body '{"name":"Critical CVEs","entity_type":"cve","severity":"critical","min_risk_score":80,"is_enabled":true}'
+
+Invoke-RestMethod -Method Post "http://localhost:8000/alerts/sync?limit=500"
+Invoke-RestMethod "http://localhost:8000/alerts?status=open"
+```
+
+Alert sync is deterministic and uses existing `cyber_entities`, `items` and
+`stories`. It does not call OpenRouter, send notifications or trigger response
+automation.
