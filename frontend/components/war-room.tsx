@@ -79,6 +79,10 @@ type WarRoomSnapshot = {
   source_health: WarRoomSourceHealth[];
 };
 
+type WarRoomProps = {
+  onNavigate?: (view: "command" | "intelligence" | "sources") => void;
+};
+
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 async function apiRequest<T>(path: string): Promise<T> {
@@ -124,7 +128,7 @@ function healthTone(status: string) {
   return "text-amber-100";
 }
 
-export function WarRoom() {
+export function WarRoom({ onNavigate }: WarRoomProps) {
   const [snapshot, setSnapshot] = useState<WarRoomSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +158,7 @@ export function WarRoom() {
   const summary = snapshot?.summary;
 
   return (
-    <section className="grid gap-5 border border-white/10 bg-white/[0.035] p-5">
+    <section className="grid gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase text-signal">Cyber War Room</p>
@@ -177,6 +181,13 @@ export function WarRoom() {
           >
             <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
             Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate?.("intelligence")}
+            className="inline-flex h-10 items-center gap-2 border border-ice/30 bg-ice/10 px-3 text-sm font-semibold text-ice transition hover:border-ice hover:bg-ice/15"
+          >
+            Investigate
           </button>
         </div>
       </div>
@@ -208,14 +219,14 @@ export function WarRoom() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <section className="min-w-0 border border-white/10 p-4">
+        <section className="min-w-0 border border-white/10 bg-white/[0.025] p-4">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-lg font-semibold text-white">Risk Queue</h3>
             <span className="text-xs uppercase text-slate-500">Stories</span>
           </div>
           <div className="mt-4 grid gap-3">
             {snapshot?.risk_queue.map((story) => (
-              <article key={story.id} className="grid gap-3 border border-white/10 p-3">
+              <article key={story.id} className="grid gap-3 border border-white/10 bg-obsidian/50 p-3">
                 <div className="grid gap-3 sm:grid-cols-[1fr_72px]">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -245,6 +256,13 @@ export function WarRoom() {
                     </span>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("intelligence")}
+                  className="inline-flex h-9 w-fit items-center border border-white/10 px-3 text-xs font-semibold uppercase text-slate-300 transition hover:border-ice/40 hover:text-ice"
+                >
+                  Open in Intelligence
+                </button>
               </article>
             ))}
             {snapshot && snapshot.risk_queue.length === 0 ? (
@@ -254,16 +272,18 @@ export function WarRoom() {
         </section>
 
         <div className="grid gap-5">
-          <section className="border border-white/10 p-4">
+          <section className="border border-white/10 bg-white/[0.025] p-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold text-white">Entity Pulse</h3>
               <span className="text-xs uppercase text-slate-500">Top signals</span>
             </div>
             <div className="mt-4 grid gap-2">
               {snapshot?.entity_pulse.slice(0, 7).map((entity) => (
-                <div
+                <button
                   key={`${entity.entity_type}-${entity.normalized_value}`}
-                  className="grid grid-cols-[1fr_64px] gap-3 border border-white/10 p-3"
+                  type="button"
+                  onClick={() => onNavigate?.("intelligence")}
+                  className="grid grid-cols-[1fr_64px] gap-3 border border-white/10 p-3 text-left transition hover:border-fuchsia-200/40"
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold text-slate-200">
@@ -276,19 +296,24 @@ export function WarRoom() {
                   <span className="text-right text-sm font-semibold text-fuchsia-200">
                     {entity.max_risk_score}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </section>
 
-          <section className="border border-white/10 p-4">
+          <section className="border border-white/10 bg-white/[0.025] p-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold text-white">Source Health</h3>
               <Signal className="h-4 w-4 text-signal" aria-hidden="true" />
             </div>
             <div className="mt-4 grid gap-2">
               {snapshot?.source_health.slice(0, 6).map((source) => (
-                <div key={source.id} className="grid grid-cols-[1fr_88px] gap-3 border border-white/10 p-3">
+                <button
+                  key={source.id}
+                  type="button"
+                  onClick={() => onNavigate?.("sources")}
+                  className="grid grid-cols-[1fr_88px] gap-3 border border-white/10 p-3 text-left transition hover:border-signal/40"
+                >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold text-slate-200">
                       {source.name}
@@ -300,14 +325,14 @@ export function WarRoom() {
                   <span className={`text-right text-xs font-semibold uppercase ${healthTone(source.status)}`}>
                     {source.status}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </section>
         </div>
       </div>
 
-      <section className="border border-white/10 p-4">
+      <section className="border border-white/10 bg-white/[0.025] p-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-white">Operational Timeline</h3>
           <span className="text-xs uppercase text-slate-500">Recent activity</span>
