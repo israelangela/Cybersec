@@ -46,11 +46,11 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 9 exposes system status, source management, RSS collection, item listing,
+Phase 10 exposes system status, source management, RSS collection, item listing,
 item statistics, item normalization, AI enrichment, cyber intelligence entity
 endpoints, story clustering endpoints, contextual navigation endpoints and the
 Cyber War Room snapshot. It also exposes Ask CyberSec for cited RAG answers over
-enriched intelligence.
+enriched intelligence and persistent report generation.
 
 ## Ask CyberSec
 
@@ -367,6 +367,60 @@ Response sections:
 - `entity_pulse`: top entity groups ordered by risk and occurrence count
 - `timeline`: recent story and item events
 - `source_health`: source freshness and error status
+
+## Reports
+
+### `POST /reports/generate`
+
+Creates a draft report from current story clusters and their cited source news.
+
+Request:
+
+```json
+{
+  "title": "Weekly CTI Executive Brief",
+  "report_type": "executive",
+  "severity": "high",
+  "min_score": 70,
+  "story_ids": [],
+  "limit": 6
+}
+```
+
+Fields:
+
+- `title`: optional custom report title
+- `report_type`: `executive`, `technical`, `daily` or any internal label
+- `severity`: optional story severity filter
+- `min_score`: optional story risk threshold from `1` to `100`
+- `story_ids`: optional exact story ids to include
+- `limit`: number of top stories to include when `story_ids` is empty
+
+The response includes the persisted report, linked stories, linked source items
+and generated Markdown body.
+
+### `GET /reports`
+
+Lists saved reports ordered by creation date.
+
+Optional query parameters:
+
+- `report_type`
+- `status`
+- `limit`: from `1` to `100`
+- `offset`
+
+### `GET /reports/{report_id}`
+
+Returns a report with Markdown body, story links and cited source items.
+
+### `GET /reports/{report_id}/markdown`
+
+Returns the generated Markdown as `text/markdown`.
+
+### `DELETE /reports/{report_id}`
+
+Deletes a report and its report-story/report-item links.
 
 ## Collection
 

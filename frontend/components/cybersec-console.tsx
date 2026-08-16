@@ -8,6 +8,7 @@ import {
   DownloadCloud,
   ExternalLink,
   Eye,
+  FileText,
   Fingerprint,
   GitBranch,
   Layers3,
@@ -19,13 +20,21 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Trash2,
   Waypoints
 } from "lucide-react";
 
 import { SourceManagement } from "@/components/source-management";
 import { WarRoom } from "@/components/war-room";
 
-type ConsoleView = "war-room" | "ask" | "stories" | "entities" | "news" | "sources";
+type ConsoleView =
+  | "war-room"
+  | "ask"
+  | "reports"
+  | "stories"
+  | "entities"
+  | "news"
+  | "sources";
 
 type Item = {
   id: string;
@@ -146,6 +155,39 @@ type AskResponse = {
   follow_up_questions: string[];
 };
 
+type Report = {
+  id: string;
+  title: string;
+  report_type: string;
+  status: string;
+  summary: string | null;
+  severity: string | null;
+  risk_score: number;
+  story_count: number;
+  item_count: number;
+  entity_count: number;
+  source_count: number;
+  period_start: string | null;
+  period_end: string | null;
+  filters: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+type ReportDetail = Report & {
+  body_markdown: string;
+  stories: Array<{
+    story_id: string;
+    position: number;
+    story: Story;
+  }>;
+  items: Array<{
+    item_id: string;
+    citation_id: string;
+    item: Item;
+  }>;
+};
+
 type Selection = {
   storyId: string | null;
   itemId: string | null;
@@ -157,6 +199,7 @@ type PipelineResult = Record<string, unknown>;
 const navigation = [
   { id: "war-room" as const, label: "War Room", icon: Waypoints },
   { id: "ask" as const, label: "Ask", icon: Bot },
+  { id: "reports" as const, label: "Reports", icon: FileText },
   { id: "stories" as const, label: "Stories", icon: GitBranch },
   { id: "entities" as const, label: "Entities", icon: Fingerprint },
   { id: "news" as const, label: "News Feed", icon: Newspaper },
@@ -582,6 +625,350 @@ function AskCyberSecView({
   );
 }
 
+function ReportsView({
+  onOpenStory,
+  onOpenItem
+}: {
+  onOpenStory: (storyId: string) => void;
+  onOpenItem: (itemId: string) => void;
+}) {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<ReportDetail | null>(null);
+  const [title, setTitle] = useState("");
+  const [reportType, setReportType] = useState("executive");
+  const [minScore, setMinScore] = useState("70");
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function loadReports() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await apiRequest<Report[]>("/reports?limit=100");
+      setReports(data);
+      setSelectedReportId((current) => current ?? data[0]?.id ?? null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load reports");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadReports();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!selectedReportId) {
+        setDetail(null);
+        return;
+      }
+
+      apiRequest<ReportDetail>(`/reports/${selectedReportId}`)
+        .then(setDetail)
+        .catch((loadError: unknown) => {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load report");
+        });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [selectedReportId]);
+
+  async function generateReport() {
+    setGenerating(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const result = await apiRequest<{ status: string; report: ReportDetail }>("/reports/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          title: title.trim() || null,
+          report_type: reportType,
+          min_score: minScore ? Number(minScore) : null,
+          limit: 6
+        })
+      });
+      setDetail(result.report);
+      setSelectedReportId(result.report.id);
+      setMessage("Report generated");
+      await loadReports();
+    } catch (generateError) {
+      setError(generateError instanceof Error ? generateError.message : "Unable to generate report");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function deleteReport(reportId: string) {
+    setError(null);
+    setMessage(null);
+
+    try {
+      await apiRequest<void>(`/reports/${reportId}`, { method: "DELETE" });
+      setDetail(null);
+      setSelectedReportId(null);
+      setMessage("Report deleted");
+      await loadReports();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete report");
+    }
+  }
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+      <div className="grid gap-5">
+        <section className="border border-white/10 bg-white/[0.04] p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-signal/40 bg-signal/10 text-signal">
+              <FileText className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase text-signal">Reports</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">Generate Intelligence Report</h2>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none transition focus:border-signal/60"
+              placeholder="Optional report title"
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <select
+                value={reportType}
+                onChange={(event) => setReportType(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none"
+              >
+                <option value="executive">executive</option>
+                <option value="technical">technical</option>
+                <option value="daily">daily</option>
+              </select>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={minScore}
+                onChange={(event) => setMinScore(event.target.value)}
+                className="h-10 border border-white/10 bg-obsidian px-3 text-sm text-white outline-none transition focus:border-signal/60"
+                placeholder="Minimum risk"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => void generateReport()}
+              disabled={generating}
+              className="inline-flex h-10 items-center justify-center gap-2 bg-signal px-4 text-sm font-semibold text-obsidian transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <FileText className={generating ? "h-4 w-4 animate-pulse" : "h-4 w-4"} aria-hidden="true" />
+              {generating ? "Generating" : "Generate Report"}
+            </button>
+          </div>
+
+          {message ? <p className="mt-3 text-sm text-signal">{message}</p> : null}
+          {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+        </section>
+
+        <section className="border border-white/10 bg-white/[0.035]">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4">
+            <h3 className="text-lg font-semibold text-white">Saved Reports</h3>
+            <button
+              type="button"
+              onClick={() => void loadReports()}
+              className="inline-flex h-9 w-9 items-center justify-center border border-white/10 text-slate-300 transition hover:border-signal/40 hover:text-signal"
+              aria-label="Refresh reports"
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="max-h-[calc(100vh-420px)] overflow-auto divide-y divide-white/10">
+            {loading ? <p className="p-4 text-sm text-slate-400">Loading reports</p> : null}
+            {reports.map((report) => (
+              <button
+                key={report.id}
+                type="button"
+                onClick={() => setSelectedReportId(report.id)}
+                className={
+                  selectedReportId === report.id
+                    ? "grid w-full gap-2 bg-signal/10 p-4 text-left"
+                    : "grid w-full gap-2 p-4 text-left transition hover:bg-white/[0.04]"
+                }
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="min-w-0 truncate text-sm font-semibold text-white">
+                    {report.title}
+                  </span>
+                  <span className={`text-sm font-semibold ${riskTone(report.risk_score)}`}>
+                    {report.risk_score}
+                  </span>
+                </div>
+                <p className="line-clamp-2 text-sm leading-6 text-slate-400">
+                  {report.summary ?? "No summary"}
+                </p>
+                <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                  <span>{report.story_count} stories</span>
+                  <span>{report.item_count} citations</span>
+                  <span>{report.report_type}</span>
+                </div>
+              </button>
+            ))}
+            {!loading && reports.length === 0 ? (
+              <p className="p-4 text-sm text-slate-400">No reports generated yet</p>
+            ) : null}
+          </div>
+        </section>
+      </div>
+
+      <ReportDetailPanel
+        detail={detail}
+        onDelete={deleteReport}
+        onOpenStory={onOpenStory}
+        onOpenItem={onOpenItem}
+      />
+    </section>
+  );
+}
+
+function ReportDetailPanel({
+  detail,
+  onDelete,
+  onOpenStory,
+  onOpenItem
+}: {
+  detail: ReportDetail | null;
+  onDelete: (reportId: string) => Promise<void>;
+  onOpenStory: (storyId: string) => void;
+  onOpenItem: (itemId: string) => void;
+}) {
+  if (!detail) {
+    return (
+      <section className="border border-white/10 bg-white/[0.035] p-5 text-sm text-slate-400">
+        Select or generate a report
+      </section>
+    );
+  }
+
+  return (
+    <section className="grid gap-5 border border-white/10 bg-white/[0.04] p-5">
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+        <div>
+          <p className="text-xs uppercase text-signal">{detail.report_type}</p>
+          <h2 className="mt-2 text-2xl font-semibold text-white">{detail.title}</h2>
+          <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-300">
+            {detail.summary ?? "No summary"}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-start gap-2">
+          <a
+            href={`${apiBaseUrl}/reports/${detail.id}/markdown`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-10 items-center gap-2 border border-ice/30 bg-ice/10 px-3 text-sm font-semibold text-ice transition hover:border-ice"
+          >
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            Markdown
+          </a>
+          <button
+            type="button"
+            onClick={() => void onDelete(detail.id)}
+            className="inline-flex h-10 w-10 items-center justify-center border border-white/10 text-slate-300 transition hover:border-red-400/50 hover:text-red-300"
+            aria-label="Delete report"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-5">
+        {[
+          ["Risk", detail.risk_score],
+          ["Stories", detail.story_count],
+          ["Citations", detail.item_count],
+          ["Entities", detail.entity_count],
+          ["Sources", detail.source_count]
+        ].map(([label, value]) => (
+          <div key={label} className="border border-white/10 bg-obsidian/50 p-3">
+            <p className="text-xs uppercase text-slate-500">{label}</p>
+            <p className="mt-2 text-lg font-semibold text-white">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <section className="grid gap-3">
+        <h3 className="text-sm font-semibold text-white">Stories</h3>
+        <div className="grid gap-2 md:grid-cols-2">
+          {detail.stories.map((entry) => (
+            <button
+              key={entry.story_id}
+              type="button"
+              onClick={() => onOpenStory(entry.story_id)}
+              className="grid gap-2 border border-white/10 p-3 text-left transition hover:border-signal/40"
+            >
+              <span className="truncate text-sm font-semibold text-white">{entry.story.title}</span>
+              <span className="text-xs text-slate-500">
+                Risk {entry.story.risk_score} - {entry.story.item_count} news
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-3">
+        <h3 className="text-sm font-semibold text-white">Evidence</h3>
+        <div className="grid gap-2">
+          {detail.items.map((entry) => (
+            <article
+              key={entry.item_id}
+              className="grid gap-3 border border-white/10 bg-obsidian/40 p-3 lg:grid-cols-[1fr_auto]"
+            >
+              <button
+                type="button"
+                onClick={() => onOpenItem(entry.item_id)}
+                className="min-w-0 text-left"
+              >
+                <p className="text-xs font-semibold text-signal">[{entry.citation_id}]</p>
+                <p className="mt-1 truncate text-sm font-semibold text-white">
+                  {entry.item.normalized_title ?? entry.item.title}
+                </p>
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">
+                  {entry.item.ai_summary ?? entry.item.summary ?? "No summary"}
+                </p>
+              </button>
+              <a
+                href={entry.item.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-9 items-center gap-2 border border-white/10 px-3 text-sm text-slate-300 transition hover:border-ice/40 hover:text-ice"
+              >
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                Original
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-3">
+        <h3 className="text-sm font-semibold text-white">Markdown Preview</h3>
+        <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap border border-white/10 bg-obsidian p-4 text-xs leading-6 text-slate-300">
+          {detail.body_markdown}
+        </pre>
+      </section>
+    </section>
+  );
+}
+
 type CybersecConsoleProps = {
   status: string;
 };
@@ -750,6 +1137,10 @@ export function CybersecConsole({ status }: CybersecConsoleProps) {
               onOpenStory={openStory}
               onOpenEntity={openEntity}
             />
+          ) : null}
+
+          {activeView === "reports" ? (
+            <ReportsView onOpenStory={openStory} onOpenItem={openItem} />
           ) : null}
 
           {activeView === "stories" ? (

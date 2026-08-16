@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 9 - Ask CyberSec / RAG / citations.
+Phase 10 - Reports.
 
 ## Monorepo layout
 
@@ -28,11 +28,13 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.intelligence`: cyber entity synchronization and analytics routes
 - `cybersec_api.api.normalization`: manual normalization routes
 - `cybersec_api.api.items`: collected item routes
+- `cybersec_api.api.reports`: report generation, listing and Markdown export
 - `cybersec_api.collectors`: RSS collection and scheduler logic
 - `cybersec_api.ask`: local retrieval and OpenRouter-backed answer generation
 - `cybersec_api.enrichment`: OpenRouter client and enrichment orchestration
 - `cybersec_api.intelligence`: derived entity extraction and risk scoring
 - `cybersec_api.normalizers`: text extraction, language detection and duplicate marking
+- `cybersec_api.reports`: deterministic report assembly over stories and items
 - `cybersec_api.stories`: local embedding generation and clustering
 - `cybersec_api.war_room`: operational snapshot aggregation
 - `cybersec_api.core.config`: pydantic-settings configuration
@@ -58,6 +60,9 @@ Current derived intelligence tables:
 - `cyber_entities`
 - `stories`
 - `story_items`
+- `reports`
+- `report_stories`
+- `report_items`
 
 Future phases may add reports, departments, watchlists, audit logs, alerts and
 model usage.
@@ -116,6 +121,7 @@ instead of one long scrolling page. Analysts move between dedicated workspaces:
 
 - War Room for operational triage
 - Ask for cited RAG questions over current intelligence
+- Reports for persistent analyst briefings and Markdown export
 - Stories for threat narratives and exact source articles
 - Entities for CVEs, IOCs, MITRE techniques, tags and threat actors
 - News Feed for collected source material and item-level evidence
@@ -239,6 +245,25 @@ Every response returns citations that link back to exact news items, related
 stories, entities and original source URLs. Ask CyberSec is intended for
 analyst triage and does not replace source review.
 
+## Reports
+
+Phase 10 adds persistent draft reports generated from current story clusters.
+Reports are deterministic and do not call an AI provider. A report stores a
+Markdown body plus relationships back to the exact stories and source news items
+used as evidence.
+
+Report generation can include exact story ids or a filtered set of top stories
+by severity and risk. The generated artifact includes:
+
+- Executive summary
+- Risk story sections
+- Key entities
+- Evidence citations
+- Analyst notes
+
+Reports are drafts, not approved publications. Future phases may add analyst
+approval, scheduled reports, PDF export, recipients and audit trails.
+
 ## Contextual Navigation
 
 The contextual navigation layer is read-only and built over existing derived
@@ -276,11 +301,11 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 9 treats War Room and Ask data as untrusted analytical metadata aggregated from
-feeds, AI responses, extracted entities and story summaries. The UI renders
-those values as text and never executes or injects external HTML. The `users`
-table exists so authentication and RBAC can be added later without reshaping the
-foundation.
+Phase 10 treats War Room, Ask and Reports data as untrusted analytical metadata
+aggregated from feeds, AI responses, extracted entities and story summaries. The
+UI renders those values as text and never executes or injects external HTML. The
+`users` table exists so authentication and RBAC can be added later without
+reshaping the foundation.
 
 ## Future direction
 

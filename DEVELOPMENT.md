@@ -87,10 +87,9 @@ docker compose run --rm backend alembic upgrade head
 
 ## Phase Discipline
 
-CyberSec is built phase by phase. Phase 8 is complete as a Cyber War Room
-experience over stories, entities, enriched items and source health. Phase 9 is
-complete as Ask CyberSec with cited RAG over enriched intelligence. Phase 10
-must focus on reports only when explicitly requested.
+CyberSec is built phase by phase. Phase 10 is complete as persistent report
+generation over stories, entities and cited source items. Phase 11 must focus on
+automation, alerts and watchlists only when explicitly requested.
 
 ## AI Enrichment
 
@@ -166,3 +165,22 @@ Invoke-RestMethod -Method Post "http://localhost:8000/ask" `
 If `OPENROUTER_API_KEY` is available, Ask CyberSec uses the configured model for
 the final answer. If the model is unavailable, the endpoint still returns a
 local extractive answer with citations.
+
+## Reports
+
+Apply migrations before generating reports:
+
+```powershell
+docker compose run --rm backend alembic upgrade head
+```
+
+Generate a draft report from the current top stories:
+
+```powershell
+Invoke-RestMethod -Method Post "http://localhost:8000/reports/generate" `
+  -ContentType "application/json" `
+  -Body '{"title":"Weekly CTI Brief","report_type":"executive","min_score":70,"limit":6}'
+```
+
+Reports are deterministic Markdown drafts. They do not call OpenRouter and do
+not send notifications.
