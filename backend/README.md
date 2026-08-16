@@ -1,6 +1,6 @@
 # CyberSec API
 
-Phase 7 backend for CyberSec.
+Phase 8 backend for CyberSec.
 
 Current backend capabilities:
 
@@ -15,3 +15,4 @@ Current backend capabilities:
 - Intelligence sync, aggregate entity and per-item entity endpoints
 - Story clustering with local deterministic embeddings and pgvector storage
 - Story sync, story listing, story detail and story statistics endpoints
+- Cyber War Room snapshot endpoint for operational triage

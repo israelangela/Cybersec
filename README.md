@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 7 - Stories is implemented.
+Phase 8 - War Room is implemented.
 
 Included so far:
 
@@ -46,6 +46,8 @@ Included so far:
 - Deterministic local embeddings for enriched intelligence
 - Story clustering over enriched items and cyber entities
 - Story synchronization endpoints and workbench panel
+- Cyber War Room operational snapshot API
+- War Room UI with operating mode, risk queue, entity pulse, timeline and source health
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
@@ -91,6 +93,7 @@ Open:
 - Stories sync: `POST http://localhost:8000/stories/sync`
 - Stories stats: `GET http://localhost:8000/stories/stats`
 - Stories API: `GET http://localhost:8000/stories`
+- War Room: `GET http://localhost:8000/war-room`
 
 ## Services
 
@@ -141,6 +144,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 8 - War Room.
+Next recommended step: Phase 9 - RAG / Ask CyberSec / citations.
 
-Do not begin Phase 8 until explicitly requested.
+Do not begin Phase 9 until explicitly requested.

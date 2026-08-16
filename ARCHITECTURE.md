@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 7 - Stories.
+Phase 8 - War Room.
 
 ## Monorepo layout
 
@@ -32,6 +32,7 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.intelligence`: derived entity extraction and risk scoring
 - `cybersec_api.normalizers`: text extraction, language detection and duplicate marking
 - `cybersec_api.stories`: local embedding generation and clustering
+- `cybersec_api.war_room`: operational snapshot aggregation
 - `cybersec_api.core.config`: pydantic-settings configuration
 - `cybersec_api.core.logging`: structlog configuration
 - `cybersec_api.db.session`: async SQLAlchemy engine/session
@@ -187,6 +188,24 @@ The story sync process:
 Stories are intentionally rebuildable. They are not yet analyst-approved cases,
 incidents or reports.
 
+## War Room
+
+Phase 8 adds a Cyber War Room view over the existing analytical layers. It does
+not add new tables. The War Room endpoint aggregates current stories, cyber
+entities, enriched items, fresh collection activity and source health into one
+operator-facing snapshot.
+
+The War Room snapshot includes:
+
+- Operating mode derived from story risk and high-risk entity volume
+- Risk queue ordered by active story risk
+- Entity pulse grouped by entity type and normalized value
+- Operational timeline combining recent stories and items
+- Source health states based on enabled status, fetch freshness and errors
+
+This phase remains read-only over derived intelligence and does not create
+alerts, reports, cases or RAG answers.
+
 ## Runtime
 
 Docker Compose runs:
@@ -210,10 +229,10 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 7 treats derived stories as untrusted analytical grouping metadata.
-Source URLs, feed bodies, AI responses, extracted entities and story summaries
-are rendered as text and never executed or injected as HTML. The `users` table
-exists so authentication and RBAC can be added later without reshaping the
+Phase 8 treats War Room data as untrusted analytical metadata aggregated from
+feeds, AI responses, extracted entities and story summaries. The UI renders
+those values as text and never executes or injects external HTML. The `users`
+table exists so authentication and RBAC can be added later without reshaping the
 foundation.
 
 ## Future direction
