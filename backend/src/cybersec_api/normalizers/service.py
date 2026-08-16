@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cybersec_api.models.item import Item
-from cybersec_api.normalizers.text import detect_language, normalized_hash, normalize_content
+from cybersec_api.normalizers.text import detect_language, normalize_content, normalized_hash
 
 
 @dataclass(slots=True)
@@ -86,7 +86,9 @@ async def normalize_item(session: AsyncSession, item: Item) -> ItemNormalization
         return ItemNormalizationResult(item_id=item.id, status=item.status, error=str(exc))
 
 
-async def normalize_pending_items(session: AsyncSession, *, limit: int = 100) -> NormalizationRunResult:
+async def normalize_pending_items(
+    session: AsyncSession, *, limit: int = 100
+) -> NormalizationRunResult:
     statement = (
         select(Item)
         .where(Item.status.in_(["raw", "normalization_error"]))

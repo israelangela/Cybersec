@@ -2,7 +2,7 @@
 
 ## Current posture
 
-Phase 3 creates text normalization on top of RSS collection. It does not
+Phase 4 creates an intelligence UI on top of normalized RSS collection. It does not
 implement authentication, RBAC, AI enrichment or RAG yet.
 
 ## Security rules
@@ -45,3 +45,10 @@ Normalization extracts plain text from untrusted HTML and ignores script, style
 and noscript blocks. The UI renders normalized content as React text, not raw
 HTML. This is not a replacement for future content-security, SSRF, malware
 scanning or prompt-injection controls.
+
+## Phase 4 Threat Notes
+
+The intelligence workbench displays normalized content and source metadata as
+text. It never injects external feed HTML into the DOM. External original URLs
+open in a new tab with `noreferrer`. Authentication, RBAC and per-user access
+control remain future work.

@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 class ItemRead(BaseModel):
     id: UUID
     source_id: UUID
+    source_name: str | None = None
     title: str
     url: str
     external_id: str | None
@@ -28,3 +29,25 @@ class ItemRead(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ItemLanguageCountRead(BaseModel):
+    language: str
+    count: int
+
+
+class ItemSourceCountRead(BaseModel):
+    source_id: UUID
+    source_name: str
+    count: int
+    last_collected_at: datetime | None
+
+
+class ItemStatsRead(BaseModel):
+    total: int
+    raw: int
+    normalized: int
+    duplicate: int
+    normalization_error: int
+    languages: list[ItemLanguageCountRead]
+    sources: list[ItemSourceCountRead]
