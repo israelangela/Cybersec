@@ -48,7 +48,8 @@ FastAPI exposes generated API documentation locally:
 
 Phase 8 exposes system status, source management, RSS collection, item listing,
 item statistics, item normalization, AI enrichment, cyber intelligence entity
-endpoints, story clustering endpoints and the Cyber War Room snapshot.
+endpoints, story clustering endpoints, contextual navigation endpoints and the
+Cyber War Room snapshot.
 
 ## Sources
 
@@ -164,6 +165,15 @@ Returns one collected item by UUID.
 
 Missing items return `404 Not Found`.
 
+### `GET /items/{item_id}/context`
+
+Returns one collected item together with its derived cyber entities and the
+stories where the item appears.
+
+The frontend uses this endpoint to move from an exact news item to its CVEs,
+IOCs, MITRE techniques, tags, threat actors and related stories without losing
+analyst context.
+
 ## Enrichment
 
 ### `GET /enrichment/items/{item_id}`
@@ -224,6 +234,27 @@ Optional query parameters:
 - `search`: search entity value or type
 - `limit`: number of entities, from `1` to `500`
 - `offset`: result offset
+
+### `GET /intelligence/entities/context`
+
+Returns the contextual graph for one entity value.
+
+Required query parameters:
+
+- `entity_type`: `cve`, `ioc`, `mitre_attack`, `tag` or `threat_actor`
+- `value`: raw or normalized entity value
+
+Optional query parameters:
+
+- `limit`: number of related news items, from `1` to `500`
+
+Response sections:
+
+- `entity`: aggregate entity risk, occurrences and seen dates
+- `items`: exact news items that produced the entity
+- `stories`: story clusters connected to those news items
+- `external_references`: trusted external links such as NVD, CVE.org or MITRE
+  ATT&CK when the entity type supports them
 
 ### `GET /intelligence/items/{item_id}/entities`
 

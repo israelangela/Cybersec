@@ -94,6 +94,8 @@ Open:
 - Stories stats: `GET http://localhost:8000/stories/stats`
 - Stories API: `GET http://localhost:8000/stories`
 - War Room: `GET http://localhost:8000/war-room`
+- Entity context: `GET http://localhost:8000/intelligence/entities/context?entity_type=cve&value=CVE-2026-0001`
+- Item context: `GET http://localhost:8000/items/{item_id}/context`
 
 ## Services
 
@@ -141,6 +143,7 @@ docker compose run --rm frontend npm run build
 - [Development Guide](DEVELOPMENT.md)
 - [API Reference](API.md)
 - [Database Schema](DATABASE.md)
+- [Frontend Redesign Prompt](FRONTEND_REDESIGN_PROMPT.md)
 
 ## Phase Boundary
 

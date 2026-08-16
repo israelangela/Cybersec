@@ -84,6 +84,7 @@ def test_intelligence_entity_sync_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     sync_response = client.post("/intelligence/sync", params={"limit": 500})
     assert sync_response.status_code == 200
     assert sync_response.json()["entities_created"] >= 7
+    assert client.post("/stories/sync", params={"limit": 500}).status_code == 200
 
     item_entities_response = client.get(f"/intelligence/items/{item['id']}/entities")
     assert item_entities_response.status_code == 200
@@ -106,4 +107,26 @@ def test_intelligence_entity_sync_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert stats_response.status_code == 200
     assert stats_response.json()["unique_entities"] >= 1
 
-    client.delete(f"/sources/{source_id}")
+    entity_context_response = client.get(
+        "/intelligence/entities/context",
+        params={"entity_type": "cve", "value": "CVE-2026-4242"},
+    )
+    assert entity_context_response.status_code == 200
+    entity_context = entity_context_response.json()
+    assert entity_context["entity"]["normalized_value"] == "CVE-2026-4242"
+    assert entity_context["items"][0]["id"] == item["id"]
+    assert entity_context["stories"]
+    assert {reference["label"] for reference in entity_context["external_references"]} == {
+        "CVE.org",
+        "NVD",
+    }
+
+    item_context_response = client.get(f"/items/{item['id']}/context")
+    assert item_context_response.status_code == 200
+    item_context = item_context_response.json()
+    assert item_context["item"]["id"] == item["id"]
+    assert item_context["entities"]
+    assert item_context["stories"]
+
+    assert client.delete(f"/sources/{source_id}").status_code == 204
+    assert client.post("/stories/sync", params={"limit": 500}).status_code == 200

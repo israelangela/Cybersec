@@ -10,11 +10,16 @@ from cybersec_api.intelligence.service import (
     count_high_risk_entities,
     count_total_entities,
     count_unique_entities,
+    external_references,
     list_entity_aggregates,
+    list_entity_items,
+    list_entity_stories,
     list_item_entities,
     list_top_risk_entities,
+    normalize_entity,
     sync_intelligence_entities,
 )
+from cybersec_api.schemas.context import CyberEntityContextRead, ExternalReferenceRead
 from cybersec_api.schemas.intelligence import (
     CyberEntityAggregateRead,
     CyberEntityRead,
@@ -84,6 +89,84 @@ async def read_entity_aggregates(
             last_seen_at,
         ) in rows
     ]
+
+
+@router.get("/entities/context", response_model=CyberEntityContextRead)
+async def read_entity_context(
+    session: DatabaseSession,
+    entity_type: str,
+    value: Annotated[str, Query(min_length=1, max_length=255)],
+    limit: EntityLimit = 100,
+) -> CyberEntityContextRead:
+    normalized_value = normalize_entity(entity_type, value)
+    aggregate_rows = await list_entity_aggregates(
+        session,
+        entity_type=entity_type,
+        search=normalized_value,
+        limit=500,
+    )
+    entity_row = next(
+        (
+            row
+            for row in aggregate_rows
+            if row[0] == entity_type and row[2] == normalized_value
+        ),
+        None,
+    )
+
+    if entity_row is None:
+        entity_row = (
+            entity_type,
+            value,
+            normalized_value,
+            0,
+            0,
+            None,
+            None,
+            None,
+            None,
+        )
+
+    (
+        row_entity_type,
+        row_value,
+        row_normalized_value,
+        occurrences,
+        max_risk_score,
+        avg_confidence,
+        severity,
+        first_seen_at,
+        last_seen_at,
+    ) = entity_row
+
+    return CyberEntityContextRead(
+        entity=CyberEntityAggregateRead(
+            entity_type=row_entity_type,
+            value=row_value,
+            normalized_value=row_normalized_value,
+            occurrences=occurrences,
+            max_risk_score=max_risk_score,
+            avg_confidence=round(avg_confidence, 2) if avg_confidence is not None else None,
+            severity=severity,
+            first_seen_at=first_seen_at,
+            last_seen_at=last_seen_at,
+        ),
+        items=await list_entity_items(
+            session,
+            entity_type=entity_type,
+            normalized_value=normalized_value,
+            limit=limit,
+        ),
+        stories=await list_entity_stories(
+            session,
+            entity_type=entity_type,
+            normalized_value=normalized_value,
+        ),
+        external_references=[
+            ExternalReferenceRead(label=label, url=url)
+            for label, url in external_references(entity_type, normalized_value)
+        ],
+    )
 
 
 @router.get("/items/{item_id}/entities", response_model=list[CyberEntityRead])

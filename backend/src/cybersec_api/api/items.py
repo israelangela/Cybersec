@@ -13,6 +13,8 @@ from cybersec_api.crud.items import (
     list_items,
 )
 from cybersec_api.db.session import get_session
+from cybersec_api.intelligence.service import list_item_entities, list_item_stories
+from cybersec_api.schemas.context import ItemContextRead
 from cybersec_api.schemas.item import (
     ItemLanguageCountRead,
     ItemRead,
@@ -87,3 +89,17 @@ async def read_item(item_id: UUID, session: DatabaseSession) -> ItemRead:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
 
     return item
+
+
+@router.get("/{item_id}/context", response_model=ItemContextRead)
+async def read_item_context(item_id: UUID, session: DatabaseSession) -> ItemContextRead:
+    item = await get_item(session, item_id)
+
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+
+    return ItemContextRead(
+        item=item,
+        entities=await list_item_entities(session, item_id),
+        stories=await list_item_stories(session, item_id),
+    )

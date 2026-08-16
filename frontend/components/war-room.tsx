@@ -81,6 +81,9 @@ type WarRoomSnapshot = {
 
 type WarRoomProps = {
   onNavigate?: (view: "command" | "intelligence" | "sources") => void;
+  onOpenStory?: (storyId: string) => void;
+  onOpenEntity?: (entityType: string, value: string) => void;
+  onOpenItem?: (itemId: string) => void;
 };
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -128,7 +131,7 @@ function healthTone(status: string) {
   return "text-amber-100";
 }
 
-export function WarRoom({ onNavigate }: WarRoomProps) {
+export function WarRoom({ onNavigate, onOpenStory, onOpenEntity, onOpenItem }: WarRoomProps) {
   const [snapshot, setSnapshot] = useState<WarRoomSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -227,7 +230,11 @@ export function WarRoom({ onNavigate }: WarRoomProps) {
           <div className="mt-4 grid gap-3">
             {snapshot?.risk_queue.map((story) => (
               <article key={story.id} className="grid gap-3 border border-white/10 bg-obsidian/50 p-3">
-                <div className="grid gap-3 sm:grid-cols-[1fr_72px]">
+                <button
+                  type="button"
+                  onClick={() => onOpenStory?.(story.id)}
+                  className="grid gap-3 text-left sm:grid-cols-[1fr_72px]"
+                >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="truncate text-sm font-semibold text-white">{story.title}</h4>
@@ -243,7 +250,7 @@ export function WarRoom({ onNavigate }: WarRoomProps) {
                     <p className="text-2xl font-semibold text-amber-100">{story.risk_score}</p>
                     <p className="text-xs uppercase text-slate-500">{story.severity ?? "unknown"}</p>
                   </div>
-                </div>
+                </button>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                   <span>{story.item_count} items</span>
                   <span>{story.entity_count} entities</span>
@@ -258,10 +265,10 @@ export function WarRoom({ onNavigate }: WarRoomProps) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => onNavigate?.("intelligence")}
+                  onClick={() => onOpenStory?.(story.id)}
                   className="inline-flex h-9 w-fit items-center border border-white/10 px-3 text-xs font-semibold uppercase text-slate-300 transition hover:border-ice/40 hover:text-ice"
                 >
-                  Open in Intelligence
+                  Open Story
                 </button>
               </article>
             ))}
@@ -282,7 +289,7 @@ export function WarRoom({ onNavigate }: WarRoomProps) {
                 <button
                   key={`${entity.entity_type}-${entity.normalized_value}`}
                   type="button"
-                  onClick={() => onNavigate?.("intelligence")}
+                  onClick={() => onOpenEntity?.(entity.entity_type, entity.normalized_value)}
                   className="grid grid-cols-[1fr_64px] gap-3 border border-white/10 p-3 text-left transition hover:border-fuchsia-200/40"
                 >
                   <span className="min-w-0">
@@ -339,9 +346,20 @@ export function WarRoom({ onNavigate }: WarRoomProps) {
         </div>
         <div className="mt-4 grid gap-2 lg:grid-cols-2">
           {snapshot?.timeline.slice(0, 8).map((event) => (
-            <div
+            <button
               key={`${event.event_type}-${event.story_id ?? event.item_id}-${event.occurred_at}`}
-              className="grid gap-2 border border-white/10 p-3"
+              type="button"
+              onClick={() => {
+                if (event.story_id) {
+                  onOpenStory?.(event.story_id);
+                  return;
+                }
+
+                if (event.item_id) {
+                  onOpenItem?.(event.item_id);
+                }
+              }}
+              className="grid gap-2 border border-white/10 p-3 text-left transition hover:border-signal/40"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="border border-white/10 px-2 py-1 text-xs uppercase text-slate-400">
@@ -357,7 +375,7 @@ export function WarRoom({ onNavigate }: WarRoomProps) {
                 {event.description ?? event.source_name ?? "No event description"}
               </p>
               <span className="text-xs text-slate-500">{formatDate(event.occurred_at)}</span>
-            </div>
+            </button>
           ))}
         </div>
       </section>
