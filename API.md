@@ -46,9 +46,9 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 6 exposes system status, source management, RSS collection, item listing,
-item statistics, item normalization, AI enrichment and cyber intelligence
-entity endpoints.
+Phase 7 exposes system status, source management, RSS collection, item listing,
+item statistics, item normalization, AI enrichment, cyber intelligence entity
+endpoints and story clustering endpoints.
 
 ## Sources
 
@@ -233,6 +233,56 @@ Returns all cyber entity occurrences derived for one item.
 
 Returns total entities, unique entities, high-risk entity count, distribution by
 entity type and top-risk entities for the workbench.
+
+## Stories
+
+Story endpoints derive clusters from normalized, enriched items and synchronized
+cyber entities. They do not call the AI provider.
+
+### `POST /stories/sync`
+
+Rebuilds story clusters from enriched items.
+
+Optional query parameters:
+
+- `limit`: number of enriched items to inspect, from `1` to `500`
+- `similarity_threshold`: clustering threshold from `0.1` to `0.95`
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "candidates": 25,
+  "stories_created": 8,
+  "story_items_created": 25,
+  "stories_deleted": 8,
+  "skipped": 0
+}
+```
+
+### `GET /stories`
+
+Lists story clusters ordered by risk and recency.
+
+Optional query parameters:
+
+- `severity`: story severity filter
+- `min_score`: minimum story risk score from `1` to `100`
+- `search`: search story title, summary or fingerprint
+- `limit`: number of stories, from `1` to `500`
+- `offset`: result offset
+
+### `GET /stories/{story_id}`
+
+Returns one story with linked items and relevance scores.
+
+Missing stories return `404 Not Found`.
+
+### `GET /stories/stats`
+
+Returns total stories, high-risk stories, linked item count and top stories for
+the workbench.
 
 ## Collection
 

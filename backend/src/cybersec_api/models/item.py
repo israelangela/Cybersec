@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from cybersec_api.models.cyber_entity import CyberEntity
     from cybersec_api.models.enrichment import Enrichment
     from cybersec_api.models.source import Source
+    from cybersec_api.models.story import StoryItem
 
 
 class Item(Base):
@@ -59,6 +60,9 @@ class Item(Base):
         back_populates="item", cascade="all, delete-orphan", uselist=False
     )
     cyber_entities: Mapped[list[CyberEntity]] = relationship(
+        back_populates="item", cascade="all, delete-orphan"
+    )
+    story_items: Mapped[list[StoryItem]] = relationship(
         back_populates="item", cascade="all, delete-orphan"
     )
 

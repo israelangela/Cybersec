@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 6 - Cyber Intelligence is implemented.
+Phase 7 - Stories is implemented.
 
 Included so far:
 
@@ -42,6 +42,10 @@ Included so far:
 - CVE, IOC, MITRE, tag and threat actor entity indexing
 - Risk scoring for extracted cyber entities
 - Intelligence synchronization endpoints and workbench panel
+- pgvector-enabled PostgreSQL runtime
+- Deterministic local embeddings for enriched intelligence
+- Story clustering over enriched items and cyber entities
+- Story synchronization endpoints and workbench panel
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
@@ -84,6 +88,9 @@ Open:
 - Intelligence sync: `POST http://localhost:8000/intelligence/sync`
 - Intelligence stats: `GET http://localhost:8000/intelligence/stats`
 - Cyber entities: `GET http://localhost:8000/intelligence/entities`
+- Stories sync: `POST http://localhost:8000/stories/sync`
+- Stories stats: `GET http://localhost:8000/stories/stats`
+- Stories API: `GET http://localhost:8000/stories`
 
 ## Services
 
@@ -134,6 +141,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 7 - Stories.
+Next recommended step: Phase 8 - War Room.
 
-Do not begin Phase 7 until explicitly requested.
+Do not begin Phase 8 until explicitly requested.

@@ -8,7 +8,9 @@ import {
   ExternalLink,
   Eye,
   Fingerprint,
+  GitBranch,
   Languages,
+  Layers,
   Network,
   Sparkles,
   RefreshCw,
@@ -154,6 +156,37 @@ type IntelligenceSyncResult = {
   skipped: number;
 };
 
+type Story = {
+  id: string;
+  title: string;
+  summary: string | null;
+  status: string;
+  severity: string | null;
+  risk_score: number;
+  item_count: number;
+  entity_count: number;
+  keywords: string[];
+  entity_fingerprint: string;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+};
+
+type StoryStats = {
+  total_stories: number;
+  high_risk_stories: number;
+  linked_items: number;
+  top_stories: Story[];
+};
+
+type StorySyncResult = {
+  status: string;
+  candidates: number;
+  stories_created: number;
+  story_items_created: number;
+  stories_deleted: number;
+  skipped: number;
+};
+
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const statusOptions = ["all", "normalized", "raw", "duplicate", "normalization_error"];
 
@@ -189,6 +222,8 @@ export function IntelligenceWorkbench() {
   const [intelligenceStats, setIntelligenceStats] = useState<IntelligenceStats | null>(null);
   const [cyberEntities, setCyberEntities] = useState<CyberEntityAggregate[]>([]);
   const [selectedCyberEntities, setSelectedCyberEntities] = useState<CyberEntity[]>([]);
+  const [storyStats, setStoryStats] = useState<StoryStats | null>(null);
+  const [stories, setStories] = useState<Story[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -202,11 +237,13 @@ export function IntelligenceWorkbench() {
   const [enriching, setEnriching] = useState(false);
   const [batchEnriching, setBatchEnriching] = useState(false);
   const [syncingIntelligence, setSyncingIntelligence] = useState(false);
+  const [syncingStories, setSyncingStories] = useState(false);
   const [lastRun, setLastRun] = useState<CollectionRunResult | null>(null);
   const [lastNormalization, setLastNormalization] = useState<NormalizationRunResult | null>(null);
   const [lastEnrichment, setLastEnrichment] = useState<EnrichmentRunResult | null>(null);
   const [lastIntelligenceSync, setLastIntelligenceSync] =
     useState<IntelligenceSyncResult | null>(null);
+  const [lastStorySync, setLastStorySync] = useState<StorySyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const selectedItem = useMemo(
@@ -235,6 +272,16 @@ export function IntelligenceWorkbench() {
       "/intelligence/entities?limit=12&min_score=1"
     );
     setCyberEntities(data);
+  }
+
+  async function loadStoryStats() {
+    const data = await apiRequest<StoryStats>("/stories/stats");
+    setStoryStats(data);
+  }
+
+  async function loadStories() {
+    const data = await apiRequest<Story[]>("/stories?limit=8");
+    setStories(data);
   }
 
   async function loadSelectedCyberEntities(itemId: string | null) {
@@ -288,7 +335,15 @@ export function IntelligenceWorkbench() {
   }
 
   async function refreshAll() {
-    await Promise.all([loadSources(), loadStats(), loadIntelligenceStats(), loadCyberEntities(), loadItems()]);
+    await Promise.all([
+      loadSources(),
+      loadStats(),
+      loadIntelligenceStats(),
+      loadCyberEntities(),
+      loadStoryStats(),
+      loadStories(),
+      loadItems()
+    ]);
   }
 
   useEffect(() => {
@@ -422,6 +477,23 @@ export function IntelligenceWorkbench() {
     }
   }
 
+  async function syncStories() {
+    setSyncingStories(true);
+    setError(null);
+
+    try {
+      const result = await apiRequest<StorySyncResult>("/stories/sync?limit=500", {
+        method: "POST"
+      });
+      setLastStorySync(result);
+      await Promise.all([loadStoryStats(), loadStories()]);
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : "Unable to sync stories");
+    } finally {
+      setSyncingStories(false);
+    }
+  }
+
   return (
     <section className="grid gap-6">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
@@ -543,6 +615,82 @@ export function IntelligenceWorkbench() {
         </div>
       </div>
 
+      <div className="grid gap-4 border border-white/10 bg-white/[0.035] p-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+          {[
+            {
+              label: "Stories",
+              value: storyStats?.total_stories ?? 0,
+              icon: GitBranch
+            },
+            {
+              label: "High Risk Stories",
+              value: storyStats?.high_risk_stories ?? 0,
+              icon: ShieldAlert
+            },
+            {
+              label: "Linked Items",
+              value: storyStats?.linked_items ?? 0,
+              icon: Layers
+            }
+          ].map((metric) => {
+            const MetricIcon = metric.icon;
+
+            return (
+              <div key={metric.label} className="border border-white/10 bg-obsidian/60 p-4">
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <MetricIcon className="h-4 w-4 text-amber-100" aria-hidden="true" />
+                  {metric.label}
+                </div>
+                <p className="mt-2 text-2xl font-semibold text-white">{metric.value}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        <section className="min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-white">Story Clusters</h2>
+            <span className="text-xs uppercase text-slate-500">Embeddings + pgvector</span>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {(stories.length ? stories : storyStats?.top_stories ?? []).slice(0, 8).map((story) => (
+              <div key={story.id} className="border border-white/10 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-semibold text-white">{story.title}</h3>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">
+                      {story.summary ?? "No story summary"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold text-amber-100">
+                    {story.risk_score}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {story.keywords.slice(0, 5).map((keyword) => (
+                    <span key={keyword} className="border border-white/10 px-2 py-1 text-xs text-slate-300">
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                  <span>{story.item_count} items</span>
+                  <span>{story.entity_count} entities</span>
+                  <span>{story.severity ?? "unknown"}</span>
+                  <span>{formatDate(story.last_seen_at)}</span>
+                </div>
+              </div>
+            ))}
+            {(stories.length === 0 && (storyStats?.top_stories.length ?? 0) === 0) ? (
+              <p className="border border-white/10 p-4 text-sm text-slate-400">
+                Run Sync Stories after syncing cyber intelligence
+              </p>
+            ) : null}
+          </div>
+        </section>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="border border-white/10 bg-white/[0.035]">
           <div className="grid gap-4 border-b border-white/10 p-5">
@@ -598,6 +746,15 @@ export function IntelligenceWorkbench() {
                 >
                   <Radar className="h-4 w-4" aria-hidden="true" />
                   {syncingIntelligence ? "Syncing" : "Sync Intel"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void syncStories()}
+                  disabled={syncingStories}
+                  className="inline-flex h-10 items-center gap-2 border border-amber-200/30 bg-amber-200/10 px-3 text-sm font-semibold text-amber-100 transition hover:border-amber-100 hover:bg-amber-200/15 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <GitBranch className="h-4 w-4" aria-hidden="true" />
+                  {syncingStories ? "Clustering" : "Sync Stories"}
                 </button>
               </div>
             </div>
@@ -728,6 +885,16 @@ export function IntelligenceWorkbench() {
               <span>Created {lastIntelligenceSync.entities_created}</span>
               <span>Deleted {lastIntelligenceSync.entities_deleted}</span>
               <span>Skipped {lastIntelligenceSync.skipped}</span>
+            </div>
+          ) : null}
+
+          {lastStorySync ? (
+            <div className="grid gap-3 border-b border-white/10 p-4 text-sm text-slate-300 sm:grid-cols-5">
+              <span>Status {lastStorySync.status}</span>
+              <span>Candidates {lastStorySync.candidates}</span>
+              <span>Stories {lastStorySync.stories_created}</span>
+              <span>Linked Items {lastStorySync.story_items_created}</span>
+              <span>Deleted {lastStorySync.stories_deleted}</span>
             </div>
           ) : null}
 

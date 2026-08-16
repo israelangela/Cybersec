@@ -2,8 +2,9 @@
 
 ## Current posture
 
-Phase 6 creates derived cyber intelligence entities on top of AI-enriched RSS
-collection. It does not implement authentication, RBAC or RAG yet.
+Phase 7 creates deterministic story clusters on top of AI-enriched RSS
+collection and derived cyber intelligence entities. It does not implement
+authentication, RBAC or RAG yet.
 
 ## Security rules
 
@@ -72,3 +73,13 @@ call external providers, but it promotes model-derived CVEs, IOCs, MITRE tags
 and actor identifiers into indexed tables. The UI renders all entities as text.
 Future phases should add provenance review, confidence thresholds, suppression
 lists, audit trails and analyst approval workflows before automation or alerting.
+
+## Phase 7 Threat Notes
+
+Story clusters are derived from untrusted feed content and untrusted model
+output. The sync job does not call external providers; embeddings are generated
+locally with deterministic hashing and stored in PostgreSQL through pgvector.
+Stories should be treated as analyst-assistive grouping metadata, not verified
+incident conclusions. Future phases should add reviewer workflows, provenance
+drill-down, cluster suppression and audit logs before using stories to trigger
+automated response.

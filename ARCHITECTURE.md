@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 6 - Cyber Intelligence.
+Phase 7 - Stories.
 
 ## Monorepo layout
 
@@ -21,6 +21,7 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.api.routes`: API router composition
 - `cybersec_api.api.system`: health and readiness routes
 - `cybersec_api.api.sources`: source management routes
+- `cybersec_api.api.stories`: story clustering and story analytics routes
 - `cybersec_api.api.collection`: manual collection routes
 - `cybersec_api.api.enrichment`: manual AI enrichment routes
 - `cybersec_api.api.intelligence`: cyber entity synchronization and analytics routes
@@ -30,6 +31,7 @@ The backend uses FastAPI with a small `src` package layout:
 - `cybersec_api.enrichment`: OpenRouter client and enrichment orchestration
 - `cybersec_api.intelligence`: derived entity extraction and risk scoring
 - `cybersec_api.normalizers`: text extraction, language detection and duplicate marking
+- `cybersec_api.stories`: local embedding generation and clustering
 - `cybersec_api.core.config`: pydantic-settings configuration
 - `cybersec_api.core.logging`: structlog configuration
 - `cybersec_api.db.session`: async SQLAlchemy engine/session
@@ -51,9 +53,11 @@ Current derived intelligence tables:
 
 - `enrichments`
 - `cyber_entities`
+- `stories`
+- `story_items`
 
-Future phases may add stories, reports, departments, watchlists, audit logs,
-alerts and model usage.
+Future phases may add reports, departments, watchlists, audit logs, alerts and
+model usage.
 
 ## Source Management
 
@@ -165,6 +169,24 @@ is promoted into the analytical layer.
 The workbench exposes entity counts, high-risk entities, aggregate entity radar
 and per-item entity evidence.
 
+## Stories
+
+Phase 7 clusters enriched intelligence into analyst-facing stories. It uses
+deterministic local embeddings generated from normalized item text, AI summaries
+and extracted cyber entities, then stores cluster centroids in PostgreSQL using
+the `vector(384)` type from pgvector.
+
+The story sync process:
+
+- Loads normalized, non-duplicate items with completed enrichment
+- Builds local 384-dimensional embeddings without external API calls
+- Groups items by embedding similarity and shared cyber entities
+- Rebuilds `stories` and `story_items` as a derived analytical layer
+- Preserves links back to original collected items
+
+Stories are intentionally rebuildable. They are not yet analyst-approved cases,
+incidents or reports.
+
 ## Runtime
 
 Docker Compose runs:
@@ -188,10 +210,11 @@ IDs, correlation IDs, metrics and OpenTelemetry are planned for future phases.
 
 ## Security Boundary
 
-Phase 6 treats derived cyber entities as untrusted model-derived data. Source
-URLs, feed bodies, AI responses and extracted entities are rendered as text and
-never executed or injected as HTML. The `users` table exists so authentication
-and RBAC can be added later without reshaping the foundation.
+Phase 7 treats derived stories as untrusted analytical grouping metadata.
+Source URLs, feed bodies, AI responses, extracted entities and story summaries
+are rendered as text and never executed or injected as HTML. The `users` table
+exists so authentication and RBAC can be added later without reshaping the
+foundation.
 
 ## Future direction
 
