@@ -6,7 +6,7 @@ executable, testable, documented and maintainable before the next phase begins.
 
 ## Current Status
 
-Phase 8 - War Room is implemented.
+Phase 9 - Ask CyberSec / RAG / citations is implemented.
 
 Included so far:
 
@@ -49,12 +49,13 @@ Included so far:
 - Cyber War Room operational snapshot API
 - War Room UI with operating mode, risk queue, entity pulse, timeline and source health
 - Pipeline controls for RSS collection, normalization, AI enrichment, entity sync and story sync
+- Ask CyberSec RAG endpoint over enriched news, entities and stories
+- Cited answers with source news links, story links and entity pivots
 - Next.js frontend in professional dark mode
 - Backend tests, frontend checks and project documentation
 
 Not included yet:
 
-- RAG
 - Reports
 - Alerts
 - Authentication and RBAC
@@ -97,6 +98,7 @@ Open:
 - War Room: `GET http://localhost:8000/war-room`
 - Entity context: `GET http://localhost:8000/intelligence/entities/context?entity_type=cve&value=CVE-2026-0001`
 - Item context: `GET http://localhost:8000/items/{item_id}/context`
+- Ask CyberSec: `POST http://localhost:8000/ask`
 
 ## Services
 
@@ -148,6 +150,6 @@ docker compose run --rm frontend npm run build
 
 ## Phase Boundary
 
-Next recommended step: Phase 9 - RAG / Ask CyberSec / citations.
+Next recommended step: Phase 10 - Reports.
 
-Do not begin Phase 9 until explicitly requested.
+Do not begin Phase 10 until explicitly requested.

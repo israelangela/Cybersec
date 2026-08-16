@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  Bot,
   Database,
   DownloadCloud,
   ExternalLink,
@@ -15,6 +16,7 @@ import {
   RadioTower,
   RefreshCw,
   Search,
+  Send,
   ShieldCheck,
   Sparkles,
   Waypoints
@@ -23,7 +25,7 @@ import {
 import { SourceManagement } from "@/components/source-management";
 import { WarRoom } from "@/components/war-room";
 
-type ConsoleView = "war-room" | "stories" | "entities" | "news" | "sources";
+type ConsoleView = "war-room" | "ask" | "stories" | "entities" | "news" | "sources";
 
 type Item = {
   id: string;
@@ -122,6 +124,28 @@ type ItemContext = {
   stories: Story[];
 };
 
+type AskCitation = {
+  citation_id: string;
+  item_id: string;
+  story_ids: string[];
+  title: string;
+  url: string;
+  source_name: string | null;
+  published_at: string | null;
+  collected_at: string;
+  score: number;
+  excerpt: string;
+  entities: string[];
+};
+
+type AskResponse = {
+  answer: string;
+  mode: string;
+  confidence: number;
+  citations: AskCitation[];
+  follow_up_questions: string[];
+};
+
 type Selection = {
   storyId: string | null;
   itemId: string | null;
@@ -132,6 +156,7 @@ type PipelineResult = Record<string, unknown>;
 
 const navigation = [
   { id: "war-room" as const, label: "War Room", icon: Waypoints },
+  { id: "ask" as const, label: "Ask", icon: Bot },
   { id: "stories" as const, label: "Stories", icon: GitBranch },
   { id: "entities" as const, label: "Entities", icon: Fingerprint },
   { id: "news" as const, label: "News Feed", icon: Newspaper },
@@ -199,6 +224,26 @@ function itemEntities(item: Item) {
     })),
     ...(item.ai_tags ?? []).map((value) => ({ entityType: "tag", value }))
   ];
+}
+
+function inferEntityType(value: string) {
+  if (value.toUpperCase().startsWith("CVE-")) {
+    return "cve";
+  }
+
+  if (/^T\d{4}(?:\.\d{3})?$/i.test(value)) {
+    return "mitre_attack";
+  }
+
+  if (/^(APT|TA|UNC|FIN)\d{1,5}$/i.test(value)) {
+    return "threat_actor";
+  }
+
+  if (/^(?:[a-z0-9.-]+\.[a-z]{2,}|\d{1,3}(?:\.\d{1,3}){3})$/i.test(value)) {
+    return "ioc";
+  }
+
+  return "tag";
 }
 
 function EntityPill({
@@ -327,6 +372,212 @@ function PipelineControls() {
 
       {message ? <p className="mt-3 text-sm text-signal">{message}</p> : null}
       {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+    </section>
+  );
+}
+
+function AskCyberSecView({
+  onOpenItem,
+  onOpenStory,
+  onOpenEntity
+}: {
+  onOpenItem: (itemId: string) => void;
+  onOpenStory: (storyId: string) => void;
+  onOpenEntity: (entityType: string, value: string) => void;
+}) {
+  const [question, setQuestion] = useState("Que amenazas recientes requieren prioridad?");
+  const [response, setResponse] = useState<AskResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function ask(questionText = question) {
+    const trimmedQuestion = questionText.trim();
+
+    if (trimmedQuestion.length < 3) {
+      setError("Write a longer question");
+      return;
+    }
+
+    setQuestion(trimmedQuestion);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await apiRequest<AskResponse>("/ask", {
+        method: "POST",
+        body: JSON.stringify({
+          question: trimmedQuestion,
+          limit: 6,
+          use_ai: true
+        })
+      });
+      setResponse(result);
+    } catch (askError) {
+      setError(askError instanceof Error ? askError.message : "Unable to ask CyberSec");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_460px]">
+      <div className="grid gap-5">
+        <section className="border border-white/10 bg-white/[0.04] p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-signal/40 bg-signal/10 text-signal">
+              <Bot className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase text-signal">Ask CyberSec</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">RAG with cited evidence</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Ask over enriched news, entities and stories. Answers stay tied to source citations.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            <textarea
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              className="min-h-28 resize-y border border-white/10 bg-obsidian px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-signal/60"
+              placeholder="Ask about a CVE, actor, IOC, story or defensive priority"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "Que CVEs tienen mas riesgo ahora?",
+                  "Que fuentes sostienen esta historia?",
+                  "Que acciones defensivas recomienda la evidencia?"
+                ].map((sample) => (
+                  <button
+                    key={sample}
+                    type="button"
+                    onClick={() => void ask(sample)}
+                    className="border border-white/10 px-3 py-2 text-xs text-slate-300 transition hover:border-ice/40 hover:text-ice"
+                  >
+                    {sample}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => void ask()}
+                disabled={loading}
+                className="inline-flex h-10 items-center gap-2 bg-signal px-4 text-sm font-semibold text-obsidian transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Send className={loading ? "h-4 w-4 animate-pulse" : "h-4 w-4"} aria-hidden="true" />
+                {loading ? "Asking" : "Ask"}
+              </button>
+            </div>
+          </div>
+
+          {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
+        </section>
+
+        <section className="min-h-72 border border-white/10 bg-white/[0.035] p-5">
+          {response ? (
+            <div className="grid gap-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+                <div>
+                  <p className="text-xs uppercase text-slate-500">Mode {response.mode}</p>
+                  <h3 className="mt-1 text-xl font-semibold text-white">Answer</h3>
+                </div>
+                <div className="border border-white/10 bg-obsidian/60 px-3 py-2 text-right">
+                  <p className="text-lg font-semibold text-signal">{response.confidence}%</p>
+                  <p className="text-xs uppercase text-slate-500">confidence</p>
+                </div>
+              </div>
+              <p className="whitespace-pre-line text-sm leading-7 text-slate-200">{response.answer}</p>
+              <div className="flex flex-wrap gap-2">
+                {response.follow_up_questions.map((followUp) => (
+                  <button
+                    key={followUp}
+                    type="button"
+                    onClick={() => void ask(followUp)}
+                    className="border border-white/10 px-3 py-2 text-xs text-slate-300 transition hover:border-signal/40 hover:text-signal"
+                  >
+                    {followUp}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-60 items-center justify-center text-center text-sm text-slate-400">
+              Ask a question to generate a cited cyber intelligence answer.
+            </div>
+          )}
+        </section>
+      </div>
+
+      <aside className="border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-white">Citations</h3>
+          <span className="text-xs uppercase text-slate-500">
+            {response?.citations.length ?? 0} sources
+          </span>
+        </div>
+        <div className="mt-4 grid gap-3">
+          {response?.citations.map((citation) => (
+            <article key={citation.citation_id} className="grid gap-3 border border-white/10 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => onOpenItem(citation.item_id)}
+                  className="min-w-0 text-left"
+                >
+                  <span className="text-xs font-semibold text-signal">
+                    [{citation.citation_id}] Score {citation.score}
+                  </span>
+                  <h4 className="mt-1 line-clamp-2 text-sm font-semibold text-white">
+                    {citation.title}
+                  </h4>
+                </button>
+                <a
+                  href={citation.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center border border-white/10 text-slate-300 transition hover:border-ice/40 hover:text-ice"
+                  aria-label={`Open original for ${citation.title}`}
+                >
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                </a>
+              </div>
+              <p className="text-sm leading-6 text-slate-400">{citation.excerpt}</p>
+              <div className="flex flex-wrap gap-2">
+                {citation.entities.slice(0, 8).map((entity) => (
+                  <EntityPill
+                    key={`${citation.citation_id}-${entity}`}
+                    entityType={inferEntityType(entity)}
+                    value={entity}
+                    onOpen={onOpenEntity}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                <span>
+                  {citation.source_name ?? "Unknown source"} -{" "}
+                  {formatDate(citation.published_at ?? citation.collected_at)}
+                </span>
+                {citation.story_ids[0] ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenStory(citation.story_ids[0])}
+                    className="text-slate-300 transition hover:text-signal"
+                  >
+                    Open Story
+                  </button>
+                ) : null}
+              </div>
+            </article>
+          ))}
+          {response && response.citations.length === 0 ? (
+            <p className="border border-white/10 p-3 text-sm text-slate-400">
+              No cited evidence found for this question.
+            </p>
+          ) : null}
+        </div>
+      </aside>
     </section>
   );
 }
@@ -490,6 +741,14 @@ export function CybersecConsole({ status }: CybersecConsoleProps) {
               onOpenStory={openStory}
               onOpenEntity={openEntity}
               onOpenItem={openItem}
+            />
+          ) : null}
+
+          {activeView === "ask" ? (
+            <AskCyberSecView
+              onOpenItem={openItem}
+              onOpenStory={openStory}
+              onOpenEntity={openEntity}
             />
           ) : null}
 

@@ -280,3 +280,12 @@ The Cyber War Room is a read-only aggregate over existing `stories`,
 `story_items`, `cyber_entities`, `enrichments`, `items` and `sources` rows.
 Source health, operating mode, risk queue, entity pulse and timeline values are
 computed at request time.
+
+## Phase 9 Notes
+
+Phase 9 does not require a database migration.
+
+Ask CyberSec retrieves evidence from existing `items`, `enrichments`,
+`cyber_entities`, `stories`, `story_items` and `sources` rows. Conversations and
+messages are not persisted yet; future phases may add `ask_conversations`,
+`ask_messages` and `model_usage`.
