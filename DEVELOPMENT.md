@@ -56,6 +56,8 @@ Important files:
 - `app/layout.tsx`: root layout and metadata
 - `app/page.tsx`: operational dashboard shell
 - `app/globals.css`: dark visual foundation
+- `components/cybersec-console.tsx`: contextual intelligence navigation shell
+- `components/war-room.tsx`: operational triage workspace
 - `lib/system-status.ts`: backend health integration
 
 Run frontend checks:
@@ -142,3 +144,10 @@ Invoke-RestMethod "http://localhost:8000/war-room?limit=10"
 ```
 
 The endpoint does not create reports, alerts, cases or RAG answers.
+
+## Contextual UX
+
+The frontend redesign specification is stored in
+`FRONTEND_REDESIGN_PROMPT.md`. Treat it as the product brief for the current
+navigation model: stories, news, entities and sources must remain linked so an
+analyst can trace how each source item becomes contextual threat intelligence.

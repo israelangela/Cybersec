@@ -11,6 +11,8 @@ from sqlalchemy.orm import selectinload
 
 from cybersec_api.models.cyber_entity import CyberEntity
 from cybersec_api.models.enrichment import Enrichment
+from cybersec_api.models.item import Item
+from cybersec_api.models.story import Story, StoryItem
 
 SEVERITY_ORDER = {
     "informational": 1,
@@ -340,5 +342,70 @@ async def list_top_risk_entities(session: AsyncSession, limit: int = 10) -> list
         select(CyberEntity)
         .order_by(CyberEntity.risk_score.desc(), CyberEntity.last_seen_at.desc().nullslast())
         .limit(limit)
+    )
+    return list((await session.scalars(statement)).all())
+
+
+def external_references(entity_type: str, normalized_value: str) -> list[tuple[str, str]]:
+    if entity_type == "cve" and normalized_value.upper().startswith("CVE-"):
+        cve = normalized_value.upper()
+        return [
+            ("NVD", f"https://nvd.nist.gov/vuln/detail/{cve}"),
+            ("CVE.org", f"https://www.cve.org/CVERecord?id={cve}"),
+        ]
+
+    if entity_type == "mitre_attack" and MITRE_PATTERN.fullmatch(normalized_value.upper()):
+        technique_path = normalized_value.upper().replace(".", "/")
+        return [("MITRE ATT&CK", f"https://attack.mitre.org/techniques/{technique_path}/")]
+
+    return []
+
+
+async def list_entity_items(
+    session: AsyncSession,
+    *,
+    entity_type: str,
+    normalized_value: str,
+    limit: int = 100,
+) -> list[Item]:
+    normalized = normalize_entity(entity_type, normalized_value)
+    statement = (
+        select(Item)
+        .join(CyberEntity, CyberEntity.item_id == Item.id)
+        .options(selectinload(Item.source), selectinload(Item.enrichment))
+        .where(CyberEntity.entity_type == entity_type)
+        .where(CyberEntity.normalized_value == normalized)
+        .order_by(Item.published_at.desc().nullslast(), Item.collected_at.desc())
+        .limit(limit)
+    )
+    return list((await session.scalars(statement)).unique().all())
+
+
+async def list_entity_stories(
+    session: AsyncSession,
+    *,
+    entity_type: str,
+    normalized_value: str,
+    limit: int = 50,
+) -> list[Story]:
+    normalized = normalize_entity(entity_type, normalized_value)
+    statement = (
+        select(Story)
+        .join(StoryItem, StoryItem.story_id == Story.id)
+        .join(CyberEntity, CyberEntity.item_id == StoryItem.item_id)
+        .where(CyberEntity.entity_type == entity_type)
+        .where(CyberEntity.normalized_value == normalized)
+        .order_by(Story.risk_score.desc(), Story.last_seen_at.desc().nullslast())
+        .limit(limit)
+    )
+    return list((await session.scalars(statement)).unique().all())
+
+
+async def list_item_stories(session: AsyncSession, item_id: UUID) -> list[Story]:
+    statement = (
+        select(Story)
+        .join(StoryItem, StoryItem.story_id == Story.id)
+        .where(StoryItem.item_id == item_id)
+        .order_by(Story.risk_score.desc(), Story.last_seen_at.desc().nullslast())
     )
     return list((await session.scalars(statement)).all())

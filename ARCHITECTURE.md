@@ -109,19 +109,28 @@ Normalization writes these item fields:
 ## Frontend
 
 The frontend is a Next.js App Router application with TypeScript and Tailwind
-CSS. Phase 4 exposes source management, manual RSS collection, manual
-normalization and an intelligence workbench with filters, summary metrics,
-source-aware item rows and a normalized-content detail panel.
+CSS. The current shell is organized as a contextual cyber intelligence product
+instead of one long scrolling page. Analysts move between dedicated workspaces:
+
+- War Room for operational triage
+- Stories for threat narratives and exact source articles
+- Entities for CVEs, IOCs, MITRE techniques, tags and threat actors
+- News Feed for collected source material and item-level evidence
+- Sources for feed health and collection control
 
 ## Intelligence UI
 
-Phase 4 adds an analyst-facing workbench over normalized items. The UI supports:
+The analyst-facing UI supports:
 
 - Search over title, URL, summary, raw content and normalized content
 - Filtering by source, status, language and duplicate state
 - Summary metrics for total, raw, normalized, duplicate and error states
 - Language and top-source distribution summaries
 - Item detail review without rendering untrusted HTML
+- Contextual links from stories to exact news items
+- Contextual links from news items to extracted cyber entities
+- Contextual links from entities back to stories and source articles
+- Trusted external references for CVEs and MITRE ATT&CK techniques
 
 The API remains server-filtered so the browser does not need to download the
 full item corpus.
@@ -205,6 +214,20 @@ The War Room snapshot includes:
 
 This phase remains read-only over derived intelligence and does not create
 alerts, reports, cases or RAG answers.
+
+## Contextual Navigation
+
+The contextual navigation layer is read-only and built over existing derived
+data. It introduces API contracts that make relationships explicit:
+
+- `GET /items/{item_id}/context` returns one news item, its extracted entities
+  and its linked stories.
+- `GET /intelligence/entities/context` returns one entity aggregate, related
+  news items, related stories and trusted external reference URLs.
+
+The frontend uses these contracts so an analyst can inspect how one source
+article becomes normalized intelligence, how AI enrichment created CVEs or
+techniques, and how those objects connect into a story.
 
 ## Runtime
 
