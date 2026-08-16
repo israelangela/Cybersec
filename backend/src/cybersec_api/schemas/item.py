@@ -14,6 +14,14 @@ class ItemRead(BaseModel):
     summary: str | None
     raw_content: str | None
     status: str
+    normalized_title: str | None
+    normalized_content: str | None
+    normalized_hash: str | None
+    language: str | None
+    is_duplicate: bool
+    duplicate_of_item_id: UUID | None
+    normalization_error: str | None
+    normalized_at: datetime | None
     published_at: datetime | None
     collected_at: datetime
     created_at: datetime

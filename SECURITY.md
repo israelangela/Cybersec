@@ -2,14 +2,14 @@
 
 ## Current posture
 
-Phase 2 creates RSS collection on top of source management. It does not
+Phase 3 creates text normalization on top of RSS collection. It does not
 implement authentication, RBAC, AI enrichment or RAG yet.
 
 ## Security rules
 
 - Never commit real secrets.
 - Do not log passwords, tokens, API keys or authorization headers.
-- Treat all future feed content as untrusted input.
+- Treat all feed content as untrusted input.
 - Use Alembic for all schema changes.
 - Keep database access behind SQLAlchemy sessions.
 - Prefer typed configuration through environment variables.
@@ -38,3 +38,10 @@ RSS collection fetches enabled RSS source URLs. Current controls include
 `http/https` URL validation, request timeout, redirect limit and maximum response
 size. Phase 3 should add stronger normalization and sanitization before
 presenting external content beyond plain text summaries.
+
+## Phase 3 Threat Notes
+
+Normalization extracts plain text from untrusted HTML and ignores script, style
+and noscript blocks. The UI renders normalized content as React text, not raw
+HTML. This is not a replacement for future content-security, SSRF, malware
+scanning or prompt-injection controls.

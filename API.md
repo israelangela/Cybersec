@@ -46,8 +46,8 @@ FastAPI exposes generated API documentation locally:
 
 ## Current Scope
 
-Phase 2 exposes system status, source management, RSS collection and item
-listing endpoints.
+Phase 3 exposes system status, source management, RSS collection, item listing
+and item normalization endpoints.
 
 ## Sources
 
@@ -152,3 +152,31 @@ Runs collection for a single source.
 
 Disabled sources and non-RSS sources return a `skipped` result rather than
 fetching remote content.
+
+## Normalization
+
+### `POST /normalization/run`
+
+Normalizes pending raw items. Optional query parameters:
+
+- `limit`: number of pending items to normalize, from `1` to `500`
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "candidates": 2,
+  "normalized": 1,
+  "duplicates": 1,
+  "failed": 0,
+  "skipped": 0,
+  "results": []
+}
+```
+
+### `POST /normalization/items/{item_id}/run`
+
+Normalizes one item by UUID.
+
+Missing items return `404 Not Found`.
