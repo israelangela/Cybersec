@@ -45,3 +45,10 @@ class SourceRead(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RecommendedSourcesResult(BaseModel):
+    created: int
+    skipped: int
+    total: int
+    sources: list[SourceRead]

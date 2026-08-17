@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
+  DatabaseZap,
   Pencil,
   Plus,
   Power,
@@ -37,6 +38,13 @@ type SourceFormState = {
   description: string;
   weight: string;
   is_enabled: boolean;
+};
+
+type RecommendedSourcesResult = {
+  created: number;
+  skipped: number;
+  total: number;
+  sources: Source[];
 };
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -77,6 +85,7 @@ export function SourceManagement() {
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [addingRecommended, setAddingRecommended] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -194,6 +203,30 @@ export function SourceManagement() {
     }
   }
 
+  async function addRecommendedSources() {
+    setAddingRecommended(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const result = await apiRequest<RecommendedSourcesResult>("/sources/recommended", {
+        method: "POST"
+      });
+      setMessage(
+        result.created > 0
+          ? `${result.created} recommended sources added (${result.skipped} already existed)`
+          : "All 20 recommended sources are already configured"
+      );
+      await loadSources();
+    } catch (addError) {
+      setError(
+        addError instanceof Error ? addError.message : "Unable to add recommended sources"
+      );
+    } finally {
+      setAddingRecommended(false);
+    }
+  }
+
   async function removeSource(source: Source) {
     setMessage(null);
     setError(null);
@@ -222,14 +255,25 @@ export function SourceManagement() {
               {sources.length} total / {enabledCount} enabled
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void loadSources()}
-            className="inline-flex h-10 items-center gap-2 border border-white/10 px-3 text-sm text-slate-200 transition hover:border-signal/50 hover:text-signal"
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Refresh
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void addRecommendedSources()}
+              disabled={addingRecommended}
+              className="inline-flex h-10 items-center gap-2 bg-signal px-3 text-sm font-semibold text-obsidian transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <DatabaseZap className="h-4 w-4" aria-hidden="true" />
+              {addingRecommended ? "Adding sources" : "Add 20 recommended"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadSources()}
+              className="inline-flex h-10 items-center gap-2 border border-white/10 px-3 text-sm text-slate-200 transition hover:border-signal/50 hover:text-signal"
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              Refresh
+            </button>
+          </div>
         </div>
 
         <div className="divide-y divide-white/10">

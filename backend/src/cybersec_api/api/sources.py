@@ -14,7 +14,14 @@ from cybersec_api.crud.sources import (
 )
 from cybersec_api.db.session import get_session
 from cybersec_api.models.source import Source
-from cybersec_api.schemas.source import SourceCreate, SourceRead, SourceType, SourceUpdate
+from cybersec_api.schemas.source import (
+    RecommendedSourcesResult,
+    SourceCreate,
+    SourceRead,
+    SourceType,
+    SourceUpdate,
+)
+from cybersec_api.sources.recommended import RECOMMENDED_SOURCES, add_recommended_sources
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 DatabaseSession = Annotated[AsyncSession, Depends(get_session)]
@@ -49,6 +56,18 @@ async def add_source(payload: SourceCreate, session: DatabaseSession) -> SourceR
             status_code=status.HTTP_409_CONFLICT,
             detail="Source URL already exists",
         ) from exc
+
+
+@router.post("/recommended", response_model=RecommendedSourcesResult)
+async def create_recommended_sources(session: DatabaseSession) -> RecommendedSourcesResult:
+    sources, created = await add_recommended_sources(session)
+    total = len(RECOMMENDED_SOURCES)
+    return RecommendedSourcesResult(
+        created=created,
+        skipped=total - created,
+        total=total,
+        sources=sources,
+    )
 
 
 @router.get("/{source_id}", response_model=SourceRead)

@@ -76,3 +76,28 @@ def test_duplicate_source_url_returns_conflict() -> None:
 
     source_id = first_response.json()["id"]
     client.delete(f"/sources/{source_id}")
+
+
+@pytest.mark.integration
+def test_recommended_sources_are_added_idempotently() -> None:
+    client = TestClient(app)
+    existing_ids = {source["id"] for source in client.get("/sources").json()}
+
+    try:
+        first_response = client.post("/sources/recommended")
+        assert first_response.status_code == 200
+        first = first_response.json()
+        assert first["total"] == 20
+        assert first["created"] + first["skipped"] == 20
+        assert len(first["sources"]) == 20
+
+        second_response = client.post("/sources/recommended")
+        assert second_response.status_code == 200
+        second = second_response.json()
+        assert second["created"] == 0
+        assert second["skipped"] == 20
+        assert len(second["sources"]) == 20
+    finally:
+        for source in first_response.json().get("sources", []):
+            if source["id"] not in existing_ids:
+                client.delete(f"/sources/{source['id']}")
