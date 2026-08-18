@@ -111,3 +111,41 @@ def test_collection_run_skips_non_rss_source() -> None:
     assert collection_response.json()["status"] == "skipped"
 
     client.delete(f"/sources/{source_id}")
+
+
+@pytest.mark.integration
+def test_source_collection_endpoint_records_fetch_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def failing_fetch_feed(url: str) -> bytes:
+        assert url.startswith("https://example.com/feed/")
+        raise RuntimeError("feed host unavailable")
+
+    monkeypatch.setattr("cybersec_api.collectors.rss.fetch_feed", failing_fetch_feed)
+
+    client = TestClient(app)
+    unique_id = uuid4().hex
+    source_response = client.post(
+        "/sources",
+        json={
+            "name": f"RSS Failure Test {unique_id}",
+            "url": f"https://example.com/feed/{unique_id}.xml",
+            "source_type": "rss",
+            "weight": "1.00",
+            "is_enabled": True,
+        },
+    )
+    assert source_response.status_code == 201
+    source_id = source_response.json()["id"]
+
+    collection_response = client.post(f"/collection/sources/{source_id}/run")
+    assert collection_response.status_code == 200
+    assert collection_response.json()["status"] == "error"
+    assert collection_response.json()["error"] == "feed host unavailable"
+
+    source_detail_response = client.get(f"/sources/{source_id}")
+    assert source_detail_response.status_code == 200
+    assert source_detail_response.json()["last_error"] == "feed host unavailable"
+    assert source_detail_response.json()["error_count"] == 1
+
+    client.delete(f"/sources/{source_id}")

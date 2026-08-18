@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import feedparser
 import httpx
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cybersec_api.core.config import get_settings
@@ -154,8 +155,10 @@ async def collect_source(
     *,
     fetcher: FeedFetcher | None = None,
 ) -> CollectionStats:
-    source_id = str(source.id)
+    source_uuid = source.id
+    source_id = str(source_uuid)
     source_name = source.name
+    source_error_count = source.error_count or 0
     stats = CollectionStats(source_id=source_id, source_name=source_name)
     feed_fetcher = fetcher or fetch_feed
 
@@ -215,8 +218,11 @@ async def collect_source(
         return stats
     except Exception as exc:
         await session.rollback()
-        source.last_error = str(exc)
-        source.error_count = (source.error_count or 0) + 1
+        await session.execute(
+            update(Source)
+            .where(Source.id == source_uuid)
+            .values(last_error=str(exc), error_count=source_error_count + 1)
+        )
         await session.commit()
         return CollectionStats(
             source_id=source_id,
